@@ -1,0 +1,144 @@
+"""Confere o documento aberto contra as tabelas do projeto.
+
+Macro do FreeCAD. Abra o seu modelo, depois Macro, executar.
+
+Nao modifica nada. So compara e reporta.
+
+Para cada objeto cujo nome comece com ``turbina_``, verifica:
+
+    posicao do centro          contra a tabela de coordenadas
+    direcao do eixo            contra a tabela de vetores de empuxo
+    diametro e comprimento     contra o envelope declarado
+
+E avisa quando o eixo aponta para o lado errado, que e o erro mais provavel deste
+passo: o corpo da turbina fica A MONTANTE do bocal, no mesmo sentido do empuxo.
+"""
+
+import math
+
+import FreeCAD as App
+
+TOLERANCIA_POSICAO_MM = 2.0
+TOLERANCIA_ANGULO_GRAUS = 1.0
+
+TURBINA_DIAMETRO_MM = 120.0
+TURBINA_COMPRIMENTO_MM = 299.0
+
+# nome, saida do bocal, direcao de empuxo
+BOCAIS = {
+    "par0_esq": ((320.0, -300.0, -150.0), (+0.2506, -0.2506, -0.9351)),
+    "par0_dir": ((320.0, +300.0, -150.0), (+0.2506, +0.2506, -0.9351)),
+    "par1_esq": ((200.0, -400.0, -260.0), (0.0000, -0.5000, -0.8660)),
+    "par1_dir": ((200.0, +400.0, -260.0), (0.0000, +0.5000, -0.8660)),
+    "par2_esq": ((20.0, -350.0, -370.0), (-0.2506, -0.6846, -0.6846)),
+    "par2_dir": ((20.0, +350.0, -370.0), (-0.2506, +0.6846, -0.6846)),
+    "dorsal": ((-150.0, 0.0, +100.0), (0.0000, 0.0000, -1.0000)),
+}
+
+
+def centro_esperado(saida, direcao):
+    """O corpo fica a montante: centro = saida + (L/2) * direcao."""
+    return tuple(s + (TURBINA_COMPRIMENTO_MM / 2.0) * d for s, d in zip(saida, direcao))
+
+
+def eixo_do_objeto(obj):
+    """Direcao do eixo local +Z do objeto, no referencial do documento."""
+    return obj.Placement.Rotation.multVec(App.Vector(0, 0, 1))
+
+
+def main() -> None:
+    doc = App.ActiveDocument
+    if doc is None:
+        print("Nenhum documento aberto. Abra o seu modelo e rode de novo.")
+        return
+
+    print()
+    print("CONFERENCIA CONTRA AS TABELAS DO PROJETO")
+    print(f"documento: {doc.Name}")
+    print()
+
+    encontrados = {}
+    for obj in doc.Objects:
+        nome = (obj.Label or obj.Name).lower()
+        for chave in BOCAIS:
+            if chave in nome:
+                encontrados[chave] = obj
+
+    faltando = [k for k in BOCAIS if k not in encontrados]
+    if faltando:
+        print(f"NAO ENCONTRADOS ({len(faltando)}): {', '.join(faltando)}")
+        print("  (o nome do objeto precisa conter o nome do bocal, por exemplo")
+        print("   'turbina_par0_esq')")
+        print()
+
+    if not encontrados:
+        print("Nenhum bocal reconhecido. Nada a conferir.")
+        return
+
+    problemas = 0
+    cab = f"{'bocal':12} {'posicao':>10} {'eixo':>10} {'diametro':>10} {'comprimento':>12}"
+    print(cab)
+    print("-" * len(cab))
+
+    for chave, obj in sorted(encontrados.items()):
+        saida, direcao = BOCAIS[chave]
+        alvo_centro = App.Vector(*centro_esperado(saida, direcao))
+        alvo_eixo = App.Vector(*direcao).normalize()
+
+        forma = getattr(obj, "Shape", None)
+        if forma is None or not forma.Solids:
+            print(f"{chave:12}   sem solido, nao da para conferir")
+            problemas += 1
+            continue
+
+        centro = forma.CenterOfMass
+        erro_pos = (centro - alvo_centro).Length
+        ok_pos = "ok" if erro_pos <= TOLERANCIA_POSICAO_MM else f"{erro_pos:.0f} mm"
+
+        eixo = eixo_do_objeto(obj)
+        escalar = max(-1.0, min(1.0, eixo.dot(alvo_eixo)))
+        erro_ang = math.degrees(math.acos(escalar))
+        ok_eixo = "ok" if erro_ang <= TOLERANCIA_ANGULO_GRAUS else f"{erro_ang:.0f} graus"
+
+        raio = getattr(obj, "Radius", None)
+        altura = getattr(obj, "Height", None)
+        ok_d = (
+            "ok"
+            if raio is not None and abs(2 * float(raio) - TURBINA_DIAMETRO_MM) < 0.5
+            else "difere"
+        )
+        ok_h = (
+            "ok"
+            if altura is not None and abs(float(altura) - TURBINA_COMPRIMENTO_MM) < 0.5
+            else "difere"
+        )
+
+        # ATENCAO: conta divergencia se QUALQUER um dos quatro difere. A versao
+        # anterior usava "ok not in (a, b)", que so era verdade quando os DOIS
+        # diferiam, e deixava passar objeto errado em um so criterio.
+        if any(campo != "ok" for campo in (ok_pos, ok_eixo, ok_d, ok_h)):
+            problemas += 1
+
+        print(f"{chave:12} {ok_pos:>10} {ok_eixo:>10} {ok_d:>10} {ok_h:>12}")
+
+        # o erro classico: eixo invertido
+        if erro_ang > 150.0:
+            print(
+                f"{'':12}   EIXO INVERTIDO. O corpo da turbina ficou no caminho do "
+                "jato."
+            )
+            print(
+                f"{'':12}   Gire 180 graus, ou lembre: centro = saida + (L/2) * direcao."
+            )
+
+    print()
+    if problemas == 0 and not faltando:
+        print("Tudo confere. O modelo esta de acordo com as tabelas do projeto.")
+    else:
+        print(f"{problemas} objeto(s) com divergencia, {len(faltando)} ausente(s).")
+    print()
+    print("ATENCAO: esta macro confere GEOMETRIA contra a tabela. Ela nao verifica")
+    print("massa, material, interferencia com o corpo, nem se a arquitetura funciona.")
+
+
+main()

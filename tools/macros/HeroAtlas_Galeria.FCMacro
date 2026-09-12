@@ -1,0 +1,143 @@
+"""Galeria de propulsores: os tipos lado a lado, no MESMO empuxo.
+
+Macro do FreeCAD. Menu Macro, executar.
+
+Constroi cinco envelopes de propulsao que produzem **o mesmo empuxo**, para tornar
+visivel a razao pela qual o projeto eliminou umas e manteve outras. Ao lado, uma
+silhueta do piloto, para escala.
+
+A fisica vem do proprio simulador: ``hero_atlas.analysis.energy``. Nenhum numero e
+digitado duas vezes.
+
+ATENCAO: estes sao ENVELOPES, nao motores. Nao ha compressor, pa, carcaca, mancal nem
+sistema de combustivel. Servem para comparar tamanho, massa e potencia, que e o que
+decide arquitetura.
+"""
+
+import os
+import sys
+
+import FreeCAD as App
+
+# --------------------------------------------------------------------------- setup
+RAIZ = r"C:/Users/alanl/OneDrive/Desktop/Projetos/Hero_Atlas"
+if os.path.join(RAIZ, "src") not in sys.path:
+    sys.path.insert(0, os.path.join(RAIZ, "src"))
+
+from hero_atlas.analysis.energy import (  # noqa: E402
+    electrical_hover_power_W,
+    induced_velocity_m_s,
+)
+
+# --------------------------------------------------------------------------- dados
+EMPUXO_N = 255.0
+"""Empuxo de comparacao: o da Kingtech K-260G4, 26 kgf."""
+
+TIPOS = (
+    # nome, diametro mm, comprimento mm, massa kg, e se e rotor
+    ("1_microturbina", 120.0, 299.0, 2.20, False),
+    ("2_ventilador_entubado_250", 250.0, 260.0, 3.60, True),
+    ("3_ventilador_entubado_400", 400.0, 300.0, 6.50, True),
+    ("4_rotor_aberto_700", 700.0, 90.0, 4.20, True),
+    ("5_rotor_aberto_1100", 1100.0, 110.0, 7.80, True),
+)
+
+PILOTO_ALTURA_MM = 1750.0
+PILOTO_LARGURA_MM = 450.0
+PILOTO_PROFUNDIDADE_MM = 240.0
+
+ESPACAMENTO_MM = 1400.0
+
+
+def area_disco_m2(diametro_mm: float) -> float:
+    import math
+
+    return math.pi * (diametro_mm / 2000.0) ** 2
+
+
+def main() -> None:
+    doc = App.newDocument("galeria_de_propulsores")
+
+    # ---------------------------------------------------------- piloto, para escala
+    piloto = doc.addObject("Part::Box", "piloto_para_escala")
+    piloto.Length = PILOTO_PROFUNDIDADE_MM
+    piloto.Width = PILOTO_LARGURA_MM
+    piloto.Height = PILOTO_ALTURA_MM
+    piloto.Placement.Base = App.Vector(
+        -PILOTO_PROFUNDIDADE_MM / 2, -PILOTO_LARGURA_MM / 2 - ESPACAMENTO_MM, 0
+    )
+
+    # ---------------------------------------------------------- os cinco tipos
+    linhas = []
+    for indice, (nome, diametro, comprimento, massa, e_rotor) in enumerate(TIPOS):
+        cil = doc.addObject("Part::Cylinder", nome)
+        cil.Radius = diametro / 2.0
+        cil.Height = comprimento
+        cil.Placement.Base = App.Vector(0, indice * ESPACAMENTO_MM, 0)
+
+        area = area_disco_m2(diametro)
+        if e_rotor:
+            v_i = induced_velocity_m_s(EMPUXO_N, area)
+            potencia_kW = electrical_hover_power_W(EMPUXO_N, area) / 1000.0
+            potencia = f"{potencia_kW:8.1f}"
+            induzida = f"{v_i:7.1f}"
+        else:
+            potencia = "     n/a"
+            induzida = "    n/a"
+
+        linhas.append(
+            (
+                nome,
+                diametro,
+                massa,
+                EMPUXO_N / massa,
+                area,
+                induzida,
+                potencia,
+            )
+        )
+
+    doc.recompute()
+
+    # ---------------------------------------------------------- a tabela
+    print()
+    print("GALERIA DE PROPULSORES, todos produzindo %.0f N" % EMPUXO_N)
+    print()
+    cab = (
+        f"{'tipo':28} {'diam':>7} {'massa':>7} {'N/kg':>7} "
+        f"{'area':>8} {'v_ind':>7} {'potencia':>9}"
+    )
+    print(cab)
+    print(f"{'':28} {'mm':>7} {'kg':>7} {'':>7} {'m2':>8} {'m/s':>7} {'kW':>9}")
+    print("-" * len(cab))
+    for nome, diam, massa, por_kg, area, v_i, pot in linhas:
+        print(
+            f"{nome:28} {diam:7.0f} {massa:7.2f} {por_kg:7.0f} "
+            f"{area:8.3f} {v_i} {pot}"
+        )
+    print()
+    print("LEITURA DA TABELA")
+    print()
+    print("  A microturbina nao tem coluna de potencia porque a comparacao nao existe:")
+    print("  ela queima combustivel e um rotor consome eletricidade. O que se compara")
+    print("  entre as duas e empuxo por massa e empuxo por volume, nao potencia.")
+    print()
+    print("  Entre os rotores, a lei e a mesma e a diferenca e brutal. A potencia cai")
+    print("  com a raiz da area, entao dobrar o diametro corta a potencia pela metade.")
+    print("  O ventilador de 250 mm e o rotor de 1100 mm fazem o MESMO empuxo, e um")
+    print("  gasta varias vezes a potencia do outro.")
+    print()
+    print("  E a velocidade induzida diz por que: o rotor pequeno precisa jogar pouco")
+    print("  ar muito rapido, e energia cinetica vai com o quadrado da velocidade.")
+    print()
+    print("  Olhe a silhueta do piloto ao lado. O rotor de 1100 mm e mais largo que a")
+    print("  metade de uma pessoa. E ai que o ramo eletrico morre nesta arquitetura:")
+    print("  nao por falta de empuxo, mas porque a area que ele exige nao cabe num")
+    print("  traje vestivel, e sem area a potencia explode.")
+    print()
+    print("ATENCAO: envelopes, nao motores. Sem compressor, pa, mancal ou combustivel.")
+    print("ATENCAO: massas dos rotores sao ordem de grandeza, nao catalogo. So a")
+    print("         microturbina tem massa de fabricante, em docs/sources/.")
+
+
+main()

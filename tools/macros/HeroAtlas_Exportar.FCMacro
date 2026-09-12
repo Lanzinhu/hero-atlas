@@ -1,0 +1,135 @@
+"""Exporta o documento aberto como deck do projeto, sem sair do FreeCAD.
+
+Macro do FreeCAD. Abra o seu modelo, depois Macro, executar.
+
+Escreve ``<nome do documento>.json`` ao lado do arquivo ``.FCStd``, no formato que
+``hero_atlas.airframe.cad_deck.load_cad_deck`` le.
+
+ATENCAO: a marca de eixo abaixo AFIRMA que o documento ja esta com z para baixo, e
+nao converte nada. Se o seu modelo estiver com z para cima, corrija no modelo, nao
+aqui: exportar com a marca errada produz um deck espelhado que o simulador aceita.
+
+MASSA. O FreeCAD nao sabe a massa de uma peca sem material. Esta macro procura um
+arquivo ``massas.json`` ao lado do documento. Se nao achar, ou se faltar alguma peca
+nele, ela RECUSA exportar e diz quais faltam. Chutar densidade produziria inercia
+plausivel e errada, que e o pior resultado possivel.
+"""
+
+import datetime
+import json
+import os
+
+import FreeCAD as App
+
+Z_PARA_BAIXO = True
+"""Mude para False se o seu documento estiver com z para cima. Isso nao converte:
+apenas marca o deck, e o simulador vai RECUSAR o arquivo, que e o correto."""
+
+SCHEMA_VERSION = 1
+
+
+def propriedades(obj):
+    forma = getattr(obj, "Shape", None)
+    if forma is None or not forma.Solids:
+        return None
+    m = forma.MatrixOfInertia
+    return {
+        "volume_mm3": float(forma.Volume),
+        "center_of_mass_mm": [float(c) for c in tuple(forma.CenterOfMass)],
+        "inertia_matrix": [
+            [m.A11, m.A12, m.A13],
+            [m.A21, m.A22, m.A23],
+            [m.A31, m.A32, m.A33],
+        ],
+    }
+
+
+def main() -> None:
+    doc = App.ActiveDocument
+    if doc is None:
+        print("Nenhum documento aberto.")
+        return
+    if not doc.FileName:
+        print("Documento ainda nao foi salvo. Salve com Arquivo, Salvar como, e rode de novo.")
+        return
+
+    pasta = os.path.dirname(doc.FileName)
+    caminho_massas = os.path.join(pasta, "massas.json")
+    massas = {}
+    if os.path.isfile(caminho_massas):
+        with open(caminho_massas, encoding="utf-8") as f:
+            massas = json.load(f)
+    else:
+        print(f"ATENCAO: nao achei {caminho_massas}")
+
+    solidos = []
+    sem_solido = []
+    for obj in doc.Objects:
+        props = propriedades(obj)
+        nome = obj.Label or obj.Name
+        if props is None:
+            sem_solido.append(nome)
+        else:
+            solidos.append((nome, props))
+
+    if sem_solido:
+        print(f"ignorados, sem solido: {', '.join(sem_solido)}")
+
+    if not solidos:
+        print("Nenhum objeto com solido. Nada a exportar.")
+        return
+
+    faltando = [n for n, _ in solidos if n not in massas or "mass_kg" not in massas[n]]
+    if faltando:
+        print()
+        print("RECUSADO: estas pecas nao tem massa declarada:")
+        for n in faltando:
+            print(f"  {n}")
+        print()
+        print(f"Crie ou complete {caminho_massas} com, por exemplo:")
+        exemplo = {n: {"mass_kg": 1.0, "material": "declare aqui"} for n in faltando[:3]}
+        print(json.dumps(exemplo, indent=2, ensure_ascii=False))
+        print()
+        print("Esta macro NAO chuta densidade. Um material chutado produz inercia")
+        print("plausivel e errada, e a simulacao roda lisa com o numero errado.")
+        return
+
+    componentes = []
+    for nome, props in solidos:
+        componentes.append(
+            {
+                "name": nome,
+                "mass_kg": float(massas[nome]["mass_kg"]),
+                "material": massas[nome].get("material", "nao declarado"),
+                **props,
+                "orientation": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+            }
+        )
+
+    deck = {
+        "schema_version": SCHEMA_VERSION,
+        "source_document": os.path.basename(doc.FileName),
+        "exported_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "z_axis_down": bool(Z_PARA_BAIXO),
+        "components": componentes,
+    }
+
+    destino = os.path.splitext(doc.FileName)[0] + ".json"
+    with open(destino, "w", encoding="utf-8") as f:
+        json.dump(deck, f, indent=2, ensure_ascii=False)
+
+    total = sum(c["mass_kg"] for c in componentes)
+    print()
+    print(f"{len(componentes)} componentes, {total:.2f} kg")
+    print(f"escrito em {destino}")
+    print()
+    print("Para conferir no simulador:")
+    print('  cd "C:/Users/alanl/OneDrive/Desktop/Projetos/Hero_Atlas"')
+    print(
+        "  ./.venv/Scripts/python.exe -c \"import sys; sys.path.insert(0,'src'); "
+        "from hero_atlas.airframe.cad_deck import load_cad_deck; "
+        f"d = load_cad_deck(r'{destino}'); print(d.total_mass_kg); print(d.reconcile(127.4))\""
+    )
+
+
+main()
