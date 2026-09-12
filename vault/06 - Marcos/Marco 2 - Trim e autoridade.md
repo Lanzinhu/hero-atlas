@@ -85,26 +85,52 @@ O resultado real: para cada uma das cinco perdas unicas, o solver **nao** reprod
 pairado nivelado no centro de massa nominal. Portanto nao existe trim estatico naquele cenario e
 naquela geometria.
 
-### 4. Ha uma carga interna que desperdica um atuador
+### 4. A contabilidade correta: duas causas, uma consequencia
 
-Achado que so apareceu ao decompor a matriz. Existe uma combinacao de empuxos que produz **wrench
-identicamente nulo**: os propulsores brigam entre si e o resultado se cancela.
+⚠ **Correcao de um erro meu de contagem.** Eu havia apresentado a carga interna como um terceiro
+achado independente. **Nao e.** Ela e a mesma deficiencia vista do outro lado.
 
-Cinco atuadores, **quatro** graus de liberdade uteis. Contar propulsores superestima autoridade
-exatamente nessa quantidade.
+A contabilidade fecha assim:
 
-### 5. As duas limitacoes sao separadas
+```
+matriz 6x5, posto 4
+deficiencias no espaco de wrench (saida):   6 - 4 = 2
+dimensao do nucleo de atuadores (entrada):  5 - 4 = 1   <- teorema do posto-nulidade
+```
 
-Escalonar altura entre os pares desacopla forca lateral de rolagem, **mas o posto continua 4**.
-Inclinar os bocais para frente e para tras recupera forca longitudinal e sobe o posto para **5**.
+**Duas causas, cada uma explicando uma direcao de wrench ausente:**
 
-| Limitacao | Causa | O que corrige |
-|---|---|---|
-| Sem forca longitudinal | nenhum bocal tem componente em x | inclinar bocais para frente e tras |
-| Lateral acoplado a rolagem | razao comum entre os quatro bocais | escalonar altura, envergadura **ou** inclinacao |
-| Carga interna | dependencia entre colunas | geometria com direcoes mais independentes |
+| Causa | Direcao perdida |
+|---|---|
+| Nenhum bocal tem componente longitudinal | linha `Fx` identicamente nula |
+| Os quatro bocais de braco compartilham a mesma razao `Mx/Fy` | uma combinacao de `Fy` e `Mx` |
 
-Resolver uma **nao** resolve as outras.
+E as duas direcoes inatingiveis de fato vivem no espaco gerado por `Fx`, `Fy` e `Mx`, o que confirma
+que ambas estao explicadas.
+
+**Uma consequencia, nao uma causa nova:** com posto 4 e cinco atuadores, o nucleo tem dimensao 1.
+Existe uma combinacao de empuxos que produz wrench identicamente nulo, uma carga interna em que os
+propulsores brigam entre si. Isso **decorre** do posto, nao o explica.
+
+A carga interna e a manifestacao no espaco de atuadores; a segunda direcao de wrench ausente e a
+manifestacao no espaco de saida. Mesmo fato, dois lados.
+
+O que continua valendo: cinco atuadores, **quatro** graus uteis. Contar propulsores superestima
+autoridade nessa quantidade.
+
+### 5. O que cada correcao geometrica resolve
+
+| Limitacao | Causa | O que corrige | Posto depois |
+|---|---|---|---|
+| Sem forca longitudinal | nenhum bocal com componente em x | inclinar bocais para frente e tras | 4 para **5** |
+| Lateral acoplado a rolagem | razao comum entre os quatro bocais | escalonar altura, envergadura **ou** inclinacao | continua 4 |
+
+Resolver uma **nao** resolve a outra.
+
+⚠ E posto 5 **nao e controle completo recuperado**. Ainda sobra uma direcao de wrench inacessivel.
+A formulacao correta e "recuperacao de uma quinta direcao independente, mantendo uma deficiencia
+estrutural". Isso nao condena a arquitetura, porque pairado pode exigir apenas um subconjunto de
+forcas e momentos, mas o relatorio nao pode chamar de seis graus.
 
 ### A janela de centro de massa
 

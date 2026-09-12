@@ -350,12 +350,15 @@ def test_limites_invertidos_sao_recusados():
 
 
 def test_ha_combinacao_de_empuxo_que_nao_produz_wrench_nenhum():
-    """⚠ A segunda limitacao, separada do acoplamento lateral.
+    """A carga interna: propulsores que brigam entre si e se cancelam.
 
-    O nucleo a direita da matriz e uma **carga interna**: os propulsores brigam
-    entre si e o resultado se cancela exatamente. Cada dimensao dessas e um grau de
-    liberdade de atuador desperdicado, e e por isso que contar propulsores
-    superestima autoridade.
+    ⚠ **Nao e uma causa independente.** Pelo teorema do posto-nulidade, com cinco
+    atuadores e posto 4 o nucleo tem dimensao 1 necessariamente. Esta e a mesma
+    deficiencia de posto vista do lado dos atuadores, e as duas causas reais estao
+    do lado da saida: linha Fx nula e dependencia entre Fy e Mx.
+
+    O que o teste fixa e a consequencia pratica: cinco atuadores, quatro graus
+    uteis. Contar propulsores superestima autoridade nessa quantidade.
     """
     from hero_atlas.analysis.authority import analyse_authority, thrust_null_space
 
@@ -379,11 +382,11 @@ def test_a_linha_de_forca_longitudinal_e_identicamente_nula():
 
 
 def test_quebrar_o_acoplamento_nao_restaura_o_posto():
-    """⚠ Achado que corrige a minha propria leitura anterior.
+    """Escalonar altura desacopla lateral de rolagem, mas o posto continua 4 de 6.
 
-    Escalonar altura entre os pares torna forca lateral e rolagem independentes,
-    mas o posto continua 4 de 6: a carga interna e a ausencia de forca longitudinal
-    sao limitacoes **separadas**, e resolver uma nao resolve a outra.
+    As duas causas de deficiencia sao independentes: ausencia de componente
+    longitudinal e razao comum entre os bocais de braco. Corrigir uma nao corrige a
+    outra, e por isso o posto nao melhora aqui.
     """
     from hero_atlas.analysis.authority import analyse_authority
 
@@ -421,7 +424,10 @@ def test_quebrar_o_acoplamento_nao_restaura_o_posto():
 def test_componente_longitudinal_nos_bocais_sobe_o_posto():
     """Inclinar os bocais para frente e para tras recupera Fx como canal.
 
-    De 4 para 5. Ainda nao 6, porque a carga interna continua.
+    ⚠ De 4 para 5, e **nao e controle completo recuperado**. Ainda sobra uma
+    direcao de wrench inacessivel, a do acoplamento entre lateral e rolagem. A
+    formulacao correta e recuperacao de uma quinta direcao independente, mantendo
+    uma deficiencia estrutural.
     """
     from hero_atlas.analysis.authority import analyse_authority
 
