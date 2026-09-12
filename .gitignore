@@ -31,3 +31,6 @@ processor*/
 # artefatos de sessoes de ferramenta, nao sao fonte do projeto
 _claude/
 .playwright-mcp/
+
+# backup automatico do FreeCAD, nao versionar
+*.FCBak

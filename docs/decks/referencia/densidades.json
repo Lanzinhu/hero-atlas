@@ -1,0 +1,34 @@
+{
+  "caixa_de_calibracao": {
+    "mass_kg": 1.0,
+    "material": "ficticio"
+  },
+  "turbina_par0_esq": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  },
+  "turbina_par0_dir": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  },
+  "turbina_par1_esq": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  },
+  "turbina_par1_dir": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  },
+  "turbina_par2_esq": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  },
+  "turbina_par2_dir": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  },
+  "turbina_dorsal": {
+    "mass_kg": 2.2,
+    "material": "Kingtech K-260G4"
+  }
+}

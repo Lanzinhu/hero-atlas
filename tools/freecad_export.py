@@ -102,7 +102,7 @@ def exporta(documento: str, saida: str, *, z_para_baixo: bool, densidades: dict)
         )
 
     if ignorados:
-        print(f"⚠ ignorados por nao terem solido: {ignorados}", file=sys.stderr)
+        print(f"ATENCAO: ignorados por nao terem solido: {ignorados}", file=sys.stderr)
     if not componentes:
         raise SystemExit("nenhum objeto com solido no documento")
 

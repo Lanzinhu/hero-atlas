@@ -36,6 +36,7 @@ mesmo passo de integração.
 📄 **[Especificação técnica completa](docs/ESPECIFICACAO.md)** — o documento de auditoria.
 📐 **[Guia de modelagem](docs/GUIA-MODELAGEM.md)** — o que modelar em CAD, passo a passo, com todos os números.
 🎓 **[Trilha de aprendizado](docs/APRENDER.md)** — a física do projeto em onze paradas, no código que já existe.
+🔰 **[Primeiro CAD](docs/PRIMEIRO-CAD.md)** — nunca modelou nada? Comece aqui: três exercícios, uma hora.
 
 | Marco | Entrega | Estado |
 |---|---|---|

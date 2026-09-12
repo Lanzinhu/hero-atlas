@@ -191,17 +191,49 @@ Registro da fonte em `docs/sources/kingtech-k210-k260-2026-09-12.md`.
 fixação. Ou seja, para verificação de interferência use cilindro de ⌀180 mm, mas para
 massa e inércia use o cilindro real de ⌀120 mm com 2,20 kg.
 
-**Onde fica o centro do cilindro.** A tabela da seção 2.1 dá o ponto de aplicação do
-empuxo, que fica na **saída do bocal**. O centro de massa da turbina fica recuado ao
-longo do eixo, para dentro. Recue **150 mm** no sentido contrário ao vetor de empuxo.
+**Onde fica o centro do cilindro, e aqui há um sinal fácil de inverter.**
 
-Exemplo para `par0_dir`: ponto de empuxo em (320; 300; −150), vetor (+0,2506; +0,2506;
-−0,9351). Centro do cilindro em:
+A tabela da seção 2.1 dá o ponto de aplicação do empuxo, que fica na **saída do bocal**.
+O corpo da turbina fica **a montante**, ou seja **no mesmo sentido do vetor de empuxo**.
+
+Pense fisicamente: um bocal de sustentação empurra o traje para cima, então o jato sai
+para **baixo**. A turbina fica **acima** da saída, porque é de lá que o gás vem.
 
 ```
-(320; 300; −150) − 150 × (0,2506; 0,2506; −0,9351)
-= (320 − 37,6; 300 − 37,6; −150 + 140,3)
-= (282,4; 262,4; −9,7) mm
+centro_do_cilindro = saída_do_bocal + (299/2) × direção_de_empuxo
+```
+
+Exemplo para `par0_dir`: ponto de empuxo em (320; 300; −150), vetor (+0,2506; +0,2506;
+−0,9351):
+
+```
+(320; 300; −150) + 149,5 × (0,2506; 0,2506; −0,9351)
+= (320 + 37,5; 300 + 37,5; −150 − 139,8)
+= (357,5; 337,5; −289,8) mm
+```
+
+Repare que z ficou **mais negativo**, ou seja o centro subiu. Está certo.
+
+⚠ **Subtrair em vez de somar põe as sete turbinas trezentos milímetros do lado
+errado**, o que inverte a distribuição de massa inteira sem produzir erro nenhum de
+geometria: o modelo fecha, o export funciona, e o simulador recebe um traje diferente.
+
+**Tabela pronta**, para você não precisar calcular:
+
+| Turbina | Centro do cilindro (x; y; z) mm |
+|---|---|
+| par0_esq | (357,5; −337,5; −289,8) |
+| par0_dir | (357,5; +337,5; −289,8) |
+| par1_esq | (200,0; −474,8; −389,5) |
+| par1_dir | (200,0; +474,8; −389,5) |
+| par2_esq | (−17,5; −452,3; −472,3) |
+| par2_dir | (−17,5; +452,3; −472,3) |
+| dorsal | (−150,0; 0,0; −49,5) |
+
+**Modelo de referência pronto.** Se quiser conferir o seu contra um correto:
+
+```bash
+"C:/Program Files/FreeCAD 1.1/bin/python.exe" tools/freecad_reference_model.py docs/decks/referencia
 ```
 
 ### Passo 3 — O PORTÃO: isto cabe?
@@ -544,7 +576,7 @@ Para conferência rápida enquanto modela.
 | Volume de combustível | 25,0 L |
 | Turbina, envelope | ⌀120 × 299 mm |
 | Turbina, envelope com folga | ⌀180 mm |
-| Recuo do centro da turbina | 150 mm |
+| Avanço do centro da turbina, no sentido do empuxo | +149,5 mm |
 | Linha do ombro | 225 mm do plano médio |
 | Banda de excitação a evitar | 550 a 1867 Hz |
 
