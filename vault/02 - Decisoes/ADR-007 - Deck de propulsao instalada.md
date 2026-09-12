@@ -116,6 +116,56 @@ Isso continua valioso, desde que o resultado seja redigido como fronteira condic
 E um resultado **mais forte** que uma varredura independente, porque deixa explicito qual conjunto
 de propriedades reais teria de ser demonstrado depois.
 
+## ⚠ Inversao de proposito: o deck produz requisito, nao estimativa
+
+A familia parametrica inicial e **objeto de exploracao de requisitos**, nao modelo de veiculo.
+
+A saida prioritaria **nao** e estimativa central de `tau`, `eta_inst` ou consumo especifico. E uma
+regiao admissivel:
+
+> Para que o cenario seja controlavel no modelo, o conjunto instalado precisa satisfazer
+> `Theta_prop` pertencente a `A`.
+
+Na pratica, condicoes minimas **conjuntas**:
+
+```
+tau <= tau_max
+Tdot_up_max >= Tdot_min
+eta_inst >= eta_min
+M_max / (I * omega_c^2) >= Gamma_min
+```
+
+sob a familia declarada de acoplamentos, porque condicao satisfeita isoladamente pode ser
+inatingivel em conjunto.
+
+Isso transforma ausencia de dado em **especificacao futura verificavel**. Nao "a turbina parece
+rapida", e sim "a arquitetura exige resposta local, rampa, autoridade residual e perda instalada
+dentro desta regiao".
+
+Implementado em `analysis/requirements.py`, com `ActuatorRequirement` e `AdmissibleRegion`. Um
+requisito sem `conditioned_on` e **recusado**: condicao sem o contexto em que foi obtida nao e
+interpretavel.
+
+## ⚠ Risco epistemologico: a familia nao pode virar medicao decorativa
+
+O risco restante nao e fisico. E que a familia parametrica nao validada ganhe **aparencia de
+medicao** por meio de graficos precisos, amostragens densas e fronteiras suaves. Uma superficie de
+estabilidade colorida vira "resultado do traje" na memoria de quem le, inclusive de quem gerou.
+
+Convencao erode. A marca e **estrutural**, em `model_status.py`:
+
+```yaml
+model_status:
+  propulsion_installed_deck: parametric_unvalidated
+  evidence_coverage: partial
+  conclusion_scope: conditional_on_declared_model_family
+  coupling_model: <qual familia gerou este resultado>
+```
+
+`assert_stamped` **recusa** emitir saida condicional sem a marca, e ela vai no titulo, na legenda ou
+no rodape de toda figura derivada. A marca e deliberadamente verbosa: marca discreta e ignorada, e o
+proposito dela e nao ser ignorada.
+
 ## Ligacoes
 
 [[Deck de propulsao instalada - schema]] · [[Propulsao e atraso]] · [[Autonomia e energia]] ·

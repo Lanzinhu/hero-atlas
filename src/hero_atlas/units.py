@@ -112,6 +112,10 @@ _UNITS: Final[dict[str, UnitSpec]] = {
     "kN": UnitSpec("force", 1e3),
     "kgf": UnitSpec("force", KGF_TO_N),
     "lbf": UnitSpec("force", LBF_TO_N),
+    # taxa de empuxo: o limite de rampa e tao decisivo quanto a constante de tempo
+    "N/s": UnitSpec("force_rate", 1.0),
+    "kN/s": UnitSpec("force_rate", 1e3),
+    "kgf/s": UnitSpec("force_rate", KGF_TO_N),
     # torque
     "N*m": UnitSpec("torque", 1.0),
     "N.m": UnitSpec("torque", 1.0),
@@ -200,6 +204,7 @@ _SI_UNIT_FOR: Final[dict[str, str]] = {
     "length": "m",
     "time": "s",
     "force": "N",
+    "force_rate": "N/s",
     "torque": "N*m",
     "angular_momentum": "N*m*s",
     "angle": "rad",

@@ -1,0 +1,154 @@
+"""Regiao admissivel: a saida do deck e requisito, nao estimativa."""
+
+from __future__ import annotations
+
+import pytest
+
+from hero_atlas.analysis.requirements import (
+    ActuatorRequirement,
+    AdmissibleRegion,
+    Relation,
+)
+from hero_atlas.model_status import PROPULSAO_INSTALADA_HOJE
+from hero_atlas.units import UnitError
+
+pytestmark = pytest.mark.unit
+
+CONTEXTO = {
+    "arm_pose": "symmetric_nominal",
+    "thrust_margin": 1.25,
+    "coupling_model": "fully_coupled_latent",
+    "disturbance": "gust_1ms",
+}
+
+
+def req(parameter: str, relation: Relation, threshold: float, unit: str) -> ActuatorRequirement:
+    return ActuatorRequirement(
+        parameter=parameter,
+        relation=relation,
+        threshold=threshold,
+        unit=unit,
+        conditioned_on=CONTEXTO,
+    )
+
+
+def test_requisito_de_teto_e_de_piso():
+    teto = req("tau_subida", Relation.AT_MOST, 0.30, "s")
+    piso = req("Tdot_up_max", Relation.AT_LEAST, 900.0, "N/s")
+
+    assert teto.satisfied_by(0.20) is True
+    assert teto.satisfied_by(0.40) is False
+    assert piso.satisfied_by(1200.0) is True
+    assert piso.satisfied_by(500.0) is False
+
+
+def test_limite_exato_satisfaz():
+    assert req("tau_subida", Relation.AT_MOST, 0.30, "s").satisfied_by(0.30) is True
+
+
+def test_texto_do_requisito_usa_o_simbolo_certo():
+    assert req("tau_subida", Relation.AT_MOST, 0.3, "s").as_text() == "tau_subida <= 0.3 s"
+    assert req("eta_inst", Relation.AT_LEAST, 0.8, "-").as_text() == "eta_inst >= 0.8 -"
+
+
+def test_requisito_sem_contexto_e_recusado():
+    """Uma condicao sem o contexto em que foi obtida nao e interpretavel."""
+    with pytest.raises(ValueError, match="conditioned_on"):
+        ActuatorRequirement(
+            parameter="tau_subida",
+            relation=Relation.AT_MOST,
+            threshold=0.3,
+            unit="s",
+        )
+
+
+def test_unidade_desconhecida_e_recusada():
+    with pytest.raises(UnitError):
+        ActuatorRequirement(
+            parameter="tau_subida",
+            relation=Relation.AT_MOST,
+            threshold=0.3,
+            unit="jiffies",
+            conditioned_on=CONTEXTO,
+        )
+
+
+def test_regiao_admissivel_exige_todas_as_condicoes():
+    regiao = AdmissibleRegion.of(
+        [
+            req("tau_subida", Relation.AT_MOST, 0.30, "s"),
+            req("Tdot_up_max", Relation.AT_LEAST, 900.0, "N/s"),
+            req("eta_inst", Relation.AT_LEAST, 0.80, "-"),
+        ],
+        status=PROPULSAO_INSTALADA_HOJE,
+        scenario="pairado_com_rajada",
+    )
+
+    bom = {"tau_subida": 0.20, "Tdot_up_max": 1200.0, "eta_inst": 0.88}
+    ruim = {"tau_subida": 0.20, "Tdot_up_max": 400.0, "eta_inst": 0.88}
+
+    assert regiao.satisfied_by(bom) is True
+    assert regiao.satisfied_by(ruim) is False
+    assert len(regiao) == 3
+
+
+def test_parametro_ausente_conta_como_nao_satisfeito():
+    """Silencio nao e aprovacao."""
+    regiao = AdmissibleRegion.of(
+        [req("tau_subida", Relation.AT_MOST, 0.30, "s")],
+        status=PROPULSAO_INSTALADA_HOJE,
+        scenario="pairado",
+    )
+
+    assert regiao.satisfied_by({}) is False
+
+
+def test_diagnostico_diz_qual_condicao_faltou():
+    regiao = AdmissibleRegion.of(
+        [
+            req("tau_subida", Relation.AT_MOST, 0.30, "s"),
+            req("Tdot_up_max", Relation.AT_LEAST, 900.0, "N/s"),
+        ],
+        status=PROPULSAO_INSTALADA_HOJE,
+        scenario="pairado",
+    )
+
+    faltando = regiao.unmet_by({"tau_subida": 0.20, "Tdot_up_max": 400.0})
+
+    assert len(faltando) == 1
+    assert faltando[0].parameter == "Tdot_up_max"
+
+
+def test_regiao_vazia_e_recusada():
+    with pytest.raises(ValueError, match="vazia"):
+        AdmissibleRegion.of([], status=PROPULSAO_INSTALADA_HOJE, scenario="pairado")
+
+
+def test_especificacao_sai_marcada():
+    """A inversao fica visivel: o entregavel e especificacao para evidencia futura,
+    nao estimativa apresentada como propriedade do veiculo.
+    """
+    regiao = AdmissibleRegion.of(
+        [req("tau_subida", Relation.AT_MOST, 0.30, "s")],
+        status=PROPULSAO_INSTALADA_HOJE,
+        scenario="pairado_com_rajada",
+    )
+
+    texto = regiao.as_specification()
+
+    assert "precisa satisfazer" in texto
+    assert "tau_subida <= 0.3 s" in texto
+    assert "nao representa hardware" in texto
+
+
+def test_o_estado_do_modelo_faz_parte_da_regiao():
+    """Nao e metadado opcional: regiao derivada de deck nao validado e especificacao
+    condicional, e o relatorio tem que dizer isso.
+    """
+    regiao = AdmissibleRegion.of(
+        [req("eta_inst", Relation.AT_LEAST, 0.8, "-")],
+        status=PROPULSAO_INSTALADA_HOJE,
+        scenario="pairado",
+    )
+
+    assert regiao.status.is_conditional is True

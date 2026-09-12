@@ -73,6 +73,27 @@ propulsion_uncertainty_model:
 Os campos nulos sao deliberados: **preencher com numero inventado seria pior que deixar vazio.**
 O schema existe para tornar a lacuna visivel e enderecavel.
 
+## ⚠ A saida do deck e regiao admissivel
+
+O deck nao entrega estimativa central. Entrega condicoes que o conjunto instalado precisa
+satisfazer, sob a familia de acoplamento declarada. Ver
+[[ADR-007 - Deck de propulsao instalada]].
+
+```python
+AdmissibleRegion.of(
+    [
+        ActuatorRequirement("tau_subida",  Relation.AT_MOST,  0.30, "s",   conditioned_on=ctx),
+        ActuatorRequirement("Tdot_up_max", Relation.AT_LEAST, 900.0, "N/s", conditioned_on=ctx),
+        ActuatorRequirement("eta_inst",    Relation.AT_LEAST, 0.80, "-",   conditioned_on=ctx),
+    ],
+    status=PROPULSAO_INSTALADA_HOJE,
+    scenario="pairado_com_rajada",
+)
+```
+
+O contexto `ctx` carrega pose, margem de empuxo, modelo de acoplamento e familia de perturbacao.
+**Requisito sem contexto e recusado pelo codigo.**
+
 ## Estado da evidencia, por grupo
 
 | Grupo | Existe dado? |
@@ -88,6 +109,10 @@ O schema existe para tornar a lacuna visivel e enderecavel.
 
 Sete de oito grupos sem dado. Essa e a real dimensao da lacuna, e ela e **maior** do que o vault
 descrevia quando falava so de atraso.
+
+⚠ **Isso nao e falha de documentacao. E o resultado principal do levantamento de evidencia ate
+agora**, e registrar assim impede o erro classico: preencher lacuna com numero razoavel, rodar
+simulacao sofisticada, e obter certeza decorativa.
 
 ## Por que carga parcial importa mais do que parece
 

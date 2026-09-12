@@ -31,6 +31,9 @@ MODULOS_DO_NUCLEO = [
     "hero_atlas.sim.events",
     "hero_atlas.io",
     "hero_atlas.io.telemetry",
+    "hero_atlas.model_status",
+    "hero_atlas.analysis",
+    "hero_atlas.analysis.requirements",
 ]
 
 MODULOS_PESADOS = [
@@ -57,6 +60,7 @@ def test_nenhum_modulo_pesado_entra_no_caminho_de_import():
         "import sys\n"
         "import hero_atlas, hero_atlas.units, hero_atlas.provenance\n"
         "import hero_atlas.airframe, hero_atlas.sim, hero_atlas.io\n"
+        "import hero_atlas.model_status, hero_atlas.analysis\n"
         f"pesados = [m for m in {MODULOS_PESADOS!r} if m in sys.modules]\n"
         "print(','.join(pesados))\n"
     )

@@ -50,3 +50,7 @@ Sem hardware. Custo zero. Python.
    parametro nao tem dado. Ver [[ADR-007 - Deck de propulsao instalada]].
 2. **Um simulador pode concordar consigo mesmo e estar errado.** Ver [[Tres classes de teste]].
 3. **Paralisia de analise.** Sete revisoes de plano com pasta vazia. Ver [[Indice de marcos]].
+
+E um quarto, epistemologico: **a familia parametrica nao validada pode ganhar aparencia de medicao**
+por meio de graficos precisos e fronteiras suaves. Mitigado estruturalmente: `model_status.py`
+recusa emitir saida condicional sem marca.
