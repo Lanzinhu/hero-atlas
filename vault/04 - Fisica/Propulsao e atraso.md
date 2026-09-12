@@ -36,11 +36,28 @@ class ThrustSource(Protocol):
     def health(self): ...                      # OK | FLAMEOUT | DERATED
 ```
 
-## Regra de ouro do envelope
+## ⚠ Regra de ouro: envelope de dinamica, nao envelope de tau
 
-**Proibido por convencao qualquer resultado com tau unico.** A analise de estabilidade sempre
-devolve uma **curva sobre o envelope de tau**, e o entregavel e o **tau critico** onde a margem de
-ganho cai abaixo de 6 dB.
+A formulacao antiga isolava demais um parametro. **Atraso nao e o unico dominante.** Dois decks com
+o mesmo `tau` tem controlabilidade radicalmente diferente se um deles tiver rampa muito limitada,
+marcha lenta alta, saturacao assimetrica, atraso de transporte maior, ou perda instalada dependente
+de atitude.
+
+O envelope minimo e:
+
+```
+Theta_atuador = [ T_d , tau_subida , tau_descida , Tdot_up_max , Tdot_down_max , T_min , T_max ]
+```
+
+**Proibido por convencao qualquer resultado com ponto unico em `Theta_atuador`.** O entregavel
+deixa de ser `tau_critico` e passa a ser a sensibilidade da regiao estavel ao envelope inteiro.
+
+Em linguagem de relatorio: **quais combinacoes de atraso, constante local, rampa e autoridade
+residual deixam de satisfazer os criterios operacionais.**
+
+⚠ E os parametros continuam **nao calibrados**: nenhum fabricante publica resposta a degraus
+pequenos perto do trim. Os valores usados no vault sao hipoteses ilustrativas, nao medicoes.
+Ver [[Deck de propulsao instalada - schema]].
 
 ```yaml
 actuator_delay:

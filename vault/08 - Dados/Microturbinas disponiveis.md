@@ -25,13 +25,21 @@ nota: dados de catalogo, precisam de copia arquivada antes de virar teste
 | AMT Nike | 784 N / 80 kgf | 9.150 g motor, 11.300 g sistema | 1.850 g/min | **1,39** | 28.314 euros |
 
 TSFC em kg por kgf por hora, calculado a partir dos dados publicados.
-Comparacao: turbofan comercial fica em 0,35 a 0,60. **Microturbinas sao 3 a 5 vezes mais sedentas.**
+
+⚠ Comparacao com turbofan comercial, que costuma ficar em 0,35 a 0,60: os valores de catalogo
+destas microturbinas sao muito superiores. **A comparacao e indicativa e nao representa
+equivalencia de condicao operacional.** TSFC varia com velocidade, altitude, ponto de operacao e
+arquitetura; comparar microturbina em bancada estatica com turbofan em cruzeiro compara missoes
+diferentes.
 
 ## Leituras de engenharia
 
-### Escala melhora o TSFC monotonicamente
+### Escala melhora o TSFC nesta amostra
 
 Do X45 (1,93) ao Nike (1,39) ha ganho de cerca de **28 por cento** subindo 18 vezes em tamanho.
+
+⚠ Isso sugere um trade-off relevante, mas **nao estabelece monotonicidade universal** entre
+fabricantes, pontos operacionais ou arquiteturas. E observacao de amostra de catalogo, nao lei.
 
 Isso favorece **poucas turbinas grandes** sobre muitas pequenas, exatamente o oposto do que a
 redundancia exige. **Este e o trade-off central do projeto de um traje.**

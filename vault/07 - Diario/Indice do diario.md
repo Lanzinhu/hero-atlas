@@ -36,6 +36,7 @@ apodrecer.
 | Data | Marco | Resumo |
 |---|---|---|
 | [[2026-09-11]] | [[Marco 0 - Fundacao]] | Plano fechado na revisao 7. Vault criado. Marco 0 iniciado |
+| [[2026-09-12]] | [[Marco 0 - Fundacao]] | Rodada 8: deck de propulsao instalada, correlacao, marco 4 vira fronteira |
 
 ## Ligacoes
 

@@ -45,6 +45,8 @@ Sem hardware. Custo zero. Python.
 
 ## Os tres riscos
 
-1. **O atraso do atuador decide o projeto e e o pior conhecido.** Ver [[Propulsao e atraso]].
+1. **Nao existe deck de propulsao instalada.** Autoridade estatica, resposta transitoria, consumo e
+   perdas de interacao estao separados e sem correlacao declarada, e sete dos oito grupos de
+   parametro nao tem dado. Ver [[ADR-007 - Deck de propulsao instalada]].
 2. **Um simulador pode concordar consigo mesmo e estar errado.** Ver [[Tres classes de teste]].
 3. **Paralisia de analise.** Sete revisoes de plano com pasta vazia. Ver [[Indice de marcos]].

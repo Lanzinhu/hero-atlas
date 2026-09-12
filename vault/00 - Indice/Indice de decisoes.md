@@ -16,6 +16,7 @@ Voce vai esquecer o porque em tres meses. Por isso elas existem.
 | [[ADR-004 - Margem estatica e dinamica]] | Duas margens de autoridade, ambas reportadas | Aceita |
 | [[ADR-005 - Saturacao e telemetria]] | Saturacao e rampa sao telemetria, nao guarda | Aceita |
 | [[ADR-006 - Exploracao de R]] | Tres fases: sensibilidade, Sobol, fronteira | Aceita |
+| [[ADR-007 - Deck de propulsao instalada]] | Deck unico com incerteza correlacionada | Aceita |
 
 ## Historico de revisoes do plano
 

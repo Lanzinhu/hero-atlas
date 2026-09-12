@@ -5,25 +5,61 @@ atualizado: 2026-09-11
 
 # Autonomia e energia
 
-## Turbina: a conta que fecha
+## Turbina: a conta, com a unidade visivel
+
+⚠ A forma antiga, `mdot_f = TSFC * T_pairado`, e **dimensionalmente ambigua**. TSFC de catalogo
+vem em `kg/(kgf*h)` e o empuxo do nucleo esta em newton. A conversao tem que aparecer:
 
 ```
-mdot_f(t) = TSFC * T_pairado(t)
+mdot_f = f_TSFC( T / T_max , p , T_amb ) * T / g0        [T em N, TSFC em kg/(kgf*s)]
+```
+
+ou, preferivelmente, o deck armazena diretamente o consumo, sem passar por TSFC:
+
+```
+mdot_f = f_mdot( T , p , T_amb )
+```
+
+Depois integra ate a reserva, porque **a massa cai com o consumo**:
+
+```
 T_pairado(t) = m(t)*g / cos(theta)
 dm/dt = -mdot_f
 ```
 
-Integrar ate a reserva, porque **a massa cai com o consumo**.
+### ⚠ TSFC de catalogo nao vale em pairado
 
-Verificacao independente com dados de catalogo da JetCat P400 Pro (1,04 kg/min para 40,5 kgf,
-TSFC 1,54):
+TSFC e `mdot_f / F`. Fora do ponto de projeto o empuxo cai, e se o fluxo de combustivel nao cair
+proporcionalmente o consumo especifico **piora**. A eficiencia global tambem tende a se deteriorar
+em off-design.
+
+O TSFC publicado costuma estar associado a um ponto perto do **maximo**. Pairado com varias
+turbinas ocorre em fracao de empuxo diferente, e o TSFC nessa regiao **nao pode ser presumido
+constante**.
+
+Consequencia: usar TSFC de catalogo como aproximacao de pairado **nao e conservador por padrao**.
+Pode subestimar o consumo.
+
+### A verificacao antiga, rebaixada
+
+Com os dados de catalogo da JetCat P400 Pro (1,04 kg/min para 40,5 kgf, TSFC 1,54):
 
 ```
-Para sustentar 121 kgf:  121 * 1,54 = 186 kg/h = 3,1 kg/min = 3,9 L/min
+Para sustentar 121 kgf, a TSFC constante:  121 * 1,54 = 186 kg/h = 3,1 kg/min = 3,9 L/min
 ```
 
-Os 4 a 4,5 L/min declarados pela Gravity sao **fisicamente consistentes**.
-Autonomia derivada: 10 L da 2,3 min; 20 L da 4,6 min. Bate com os 3,5 a 5 min reportados.
+Isso fica na mesma ordem de grandeza dos 4 a 4,5 L/min declarados pela Gravity. ⚠ Mas **nao e
+validacao**, e sim coerencia de ordem de grandeza sob a hipotese de TSFC constante, que e
+justamente a hipotese em duvida.
+
+O marco 1 nao devolve autonomia pontual. Devolve **banda**:
+
+```
+t_autonomia pertence a [ t_min , t_max ]
+```
+
+condicionada a uma familia explicita de curvas de carga parcial, declarada em
+[[Deck de propulsao instalada - schema]].
 
 ## Eletrico: a lei do disco atuador
 

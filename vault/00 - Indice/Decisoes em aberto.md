@@ -16,6 +16,18 @@ Nenhuma bloqueando o [[Marco 0 - Fundacao]].
 | [[Marco 4 - Pairado]] | Metodo de `G_T`: diferenca finita local ou modelo analitico | [[ADR-003 - Efetividade dinamica no alocador]] |
 | [[Marco 8 - CAD e estrutura]] | Reconciliar massa contabil com CAD | [[Propriedades de massa]] |
 
+## ⚠ A lacuna dominante
+
+Nao existe **deck de propulsao instalada**: um modelo unico que ligue autoridade estatica, resposta
+transitoria, consumo e perdas de interacao, com correlacao declarada entre eles.
+
+Sete dos oito grupos de parametro do deck **nao tem dado nenhum**. Ver
+[[Deck de propulsao instalada - schema]].
+
+Sem ele, os marcos 1, 2, 4, 5 e 7 podem ser matematicamente impecaveis e ainda descrever apenas uma
+familia arbitraria de atuadores. **Este e o proximo artefato de dados do projeto**, antes de mais
+analise.
+
 ## Perguntas que so os dados respondem
 
 - Qual o `tau` real de degrau pequeno de uma microturbina? Nenhum fabricante publica.

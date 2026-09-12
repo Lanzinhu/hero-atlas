@@ -37,8 +37,35 @@ Piloto 80 kg, traje 25 kg, combustivel 12 kg, total **117 kg**, peso 1147 N.
 | Peso | - | 117,0 kgf | - |
 | Cosseno do braco a 25 graus | /0,906 | 129,1 kgf | forca efetiva de equilibrio |
 | Reserva provisoria | x1,10 | **142,0 kgf** | **exigencia fisica de empuxo efetivo** |
-| Missao nominal, eta = 0,90 | /0,90 | 157,8 kgf | quanto instalar em referencia |
+| Exploratorio, eta = 0,90 | /0,90 | 157,8 kgf | quanto instalar em referencia |
 | Quente e alto, eta = 0,81 | /0,81 | 175,3 kgf | idem, cenario adverso |
+
+## ⚠ A eficiencia de instalacao nao e fundamentada
+
+Os valores de `eta` acima **nao sao errados, sao nao fundamentados** para esta instalacao. A
+distincao importa: errado contradiz evidencia disponivel; nao fundamentado pode estar certo, mas
+nao deve ser o centro da conclusao.
+
+Nao existe base publicada para eficiencia de instalacao de cinco microturbinas proximas a bracos,
+tronco, superficies estruturais e plumas vizinhas. Nem para 0,90, nem para 0,80, nem para nenhum
+outro valor.
+
+```yaml
+installation_model:
+  status: unvalidated_parametric_assumption
+  clean_reference:
+    eta_installation: 1.00
+    meaning: bare_engine_reference_only
+  exploratory_installed:
+    eta_installation_range: [null, null]   # a preencher, sem base ainda
+    correlation_group: installed_propulsion_deck
+  report_rule: >
+    Nenhum resultado de empuxo instalado pode ser descrito como representativo de
+    hardware sem base de evidencia arquivada, especifica da instalacao.
+```
+
+Ate existir base, 0,90 sobrevive apenas como **ponto didatico intermediario**, nunca como cenario
+de missao. Ver [[ADR-007 - Deck de propulsao instalada]].
 
 ## O cosseno e modelo de ordem zero
 

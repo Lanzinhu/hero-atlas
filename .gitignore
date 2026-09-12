@@ -13,6 +13,10 @@ htmlcov/
 # execucoes: reproduziveis a partir do config, nao versionadas
 runs/
 
+# saidas derivadas de ferramentas em tools/
+_build/
+.playwright-mcp/
+
 # Obsidian: config de workspace e local, o resto do vault e versionado
 vault/.obsidian/workspace*.json
 vault/.obsidian/cache
