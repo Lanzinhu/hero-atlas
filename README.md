@@ -14,8 +14,14 @@ Sem hardware. Custo zero. Python.
 > Todo resultado deste repositório é **condicional à geometria e à família declarada de modelos**.
 > Nada aqui representa hardware.
 >
-> **A dinâmica ainda não foi implementada.** Os resultados atuais pertencem ao trim **estático** de
-> uma geometria parametrizada. Nada aqui diz respeito a estabilidade, resposta ou pilotabilidade.
+> **A dinâmica fechada ainda não foi implementada.** Os resultados atuais pertencem ao trim
+> **estático** de uma geometria parametrizada e à integração de energia por cima dele. Nada aqui
+> diz respeito a estabilidade, resposta ou pilotabilidade.
+>
+> **Nenhuma tecnologia de propulsão foi selecionada, e a seleção é estruturalmente impossível
+> hoje.** Os resultados restringem arquitetura; não aprovam motor. Aprovar exigiria que a família
+> de atraso e rampa sobrevivesse aos marcos 3 a 5. O vocabulário do projeto não tem valor de
+> "aprovado": ver [`propulsion_family.py`](src/hero_atlas/propulsion_family.py) e o ADR-008.
 >
 > Isso não é ressalva de rodapé: é o resultado principal do levantamento de evidência até agora, e
 > está codificado em [`model_status.py`](src/hero_atlas/model_status.py), que **recusa** emitir
@@ -24,17 +30,18 @@ Sem hardware. Custo zero. Python.
 ## Estado do projeto
 
 **Marco 2 entregue:** trim vetorial e autoridade estática.
-**Marco 3 em andamento:** dinâmica de corpo rígido e suíte analítica.
-**Próximo:** dinâmica reduzida, propulsão paramétrica e eventos.
+**Marco 3 em andamento:** corpo rígido pronto, atuador com atraso e rampa pronto, laço fechado não.
+**Próximo:** integrar atuador, eventos e dinâmica no mesmo laço.
 
 | Marco | Entrega | Estado |
 |---|---|---|
 | 0 | Unidades, procedência, agregação de massa, eventos, telemetria | entregue |
 | 1 | Envelope de massa e empuxo, autonomia | entregue |
 | 2 | Trim com momento do peso, mapa de autoridade | entregue |
-| 3 | Dinâmica seis graus de liberdade | núcleo e suíte analítica prontos |
+| 3 | Dinâmica seis graus de liberdade | corpo rígido e atuador prontos, laço fechado não |
+| 1b | Energia por missão, elétrico contra combustível | entregue |
 
-420 testes, lint limpo.
+537 testes, lint e formatação limpos.
 
 ## A pergunta
 
@@ -76,6 +83,31 @@ resolve.
 Duas variantes sobrevivem, e aparece um conflito: a geometria de maior autoridade tolera **zero**
 falhas, enquanto a de maior redundância não tem rolagem pura.
 
+### Experimento 2: energia por missão, e o elétrico que satura em vez de ser impossível
+
+`python tools/compare_energy_architectures.py` roda a mesma missão nas duas arquiteturas com a
+**mesma massa embarcada**: mesma geometria, mesma massa seca, mesma reserva.
+
+| Massa embarcada | Combustão | Elétrico |
+|---|---|---|
+| 10 kg | 2,46 min | 0,50 min |
+| 20 kg | 4,83 min | 1,07 min |
+| 50 kg | 10,62 min | 2,21 min |
+
+O ramo elétrico **fecha trim e voa**. O que o mata não é diâmetro de rotor, são dois tetos de
+massa. O ótimo de bateria pede 190 kg; a geometria só equilibra até 208,1 kg brutos, ou 113,1 kg
+de bateria; e exigir aceleração de subida corta o teto para 103,0 kg. Preso a isso, o melhor caso
+elétrico é **2,98 min**, que a combustão alcança com **12,0 kg** de combustível.
+
+⚠ Três afirmações anteriores deste repositório caíram aqui, e as três estão registradas no
+ADR-008: "autonomia elétrica é função da área, não da bateria" era falsa; o empuxo por bocal que
+eu tinha citado era massa dividida pelo número de bocais; e a eliminação do híbrido série
+confundia energia com potência, e foi retirada.
+
+E aparece um conflito que nenhuma das duas análises via sozinha: o trim de **menor consumo**
+encosta um par de bocais no teto, então a margem de controle vai a zero exatamente. Autonomia e
+autoridade puxam para lados opostos.
+
 ## Números de referência, e o que eles valem
 
 ⚠ **Nenhum dos números abaixo tem fonte arquivada com hash.** Eles entram como ordem de grandeza
@@ -111,7 +143,10 @@ src/hero_atlas/
   airframe/geometry           bocais com posição, direção e limites próprios
   environment/atmosphere      atmosfera padrão sem dupla contagem
   analysis/envelope           força requerida separada de capacidade de entrega
-  analysis/energy             autonomia de turbina integrada, elétrica por disco atuador
+  analysis/energy             turbina integrada; elétrico com máximo interior em bateria
+  analysis/mission_energy     energia por missão, trim como porteiro da autonomia
+  propulsion/actuator         atraso, constante de tempo, rampa, saturação e a recusa de inventar
+  propulsion_family           ramos coexistem; "aprovado" não é expressável
   analysis/trim               equilíbrio vetorial com o momento do peso
   analysis/authority          posto, carga interna, janela de centro de massa
   analysis/requirements       o deck produz requisito, não estimativa
@@ -135,6 +170,9 @@ núcleo consome por interface, verificado por varredura de árvore sintática em
 | Evento agendado cai no instante certo | `tests/validation/test_event_alignment.py` |
 | Calibração do envelope | `tests/validation/test_envelope.py` |
 | Núcleo não importa biblioteca pesada | `tests/validation/test_core_isolation.py` |
+| Forma fechada do atuador contra integração da própria lei | `tests/validation/test_actuator.py` |
+| Missão numérica contra autonomia analítica de turbina | `tests/validation/test_mission_energy.py` |
+| Seleção de tecnologia é indecidível por construção | `tests/validation/test_propulsion_family.py` |
 
 A documentação é um cofre do Obsidian em [`vault/`](vault/). Comece por
 `00 - Indice/MOC - Hero Atlas`. Decisões em `02 - Decisoes`, regras em `03 - Regras`, diário em

@@ -54,3 +54,15 @@ Sem hardware. Custo zero. Python.
 E um quarto, epistemologico: **a familia parametrica nao validada pode ganhar aparencia de medicao**
 por meio de graficos precisos e fronteiras suaves. Mitigado estruturalmente: `model_status.py`
 recusa emitir saida condicional sem marca.
+
+E um quinto, que ja se materializou uma vez: **conclusao correndo na frente da evidencia.** O
+projeto chegou a escrever "recomendacao: combustao" com zero dinamica implementada. Mitigado
+estruturalmente em [[ADR-008 - Ramos de propulsao sem selecao]]: o vocabulario nao tem valor de
+"aprovado", e `selection_verdict` devolve indeterminado **por construcao**.
+
+## Experimentos
+
+- [[Experimento 1 - Geometria de autoridade]] - nove de onze arquiteturas eliminadas antes da
+  dinamica, pelo filtro de rolagem pura
+- [[Experimento 2 - Energia por missao]] - mesma massa embarcada, eletrico contra combustivel; o
+  eletrico satura por massa, nao por area de rotor

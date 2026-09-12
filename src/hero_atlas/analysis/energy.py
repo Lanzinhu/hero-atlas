@@ -3,16 +3,29 @@
 Ver vault/04 - Fisica/Autonomia e energia.md
 
 Duas leis diferentes, e a diferenca entre elas e o resultado mais interessante do
-estudo:
+estudo.
 
-- turbina: autonomia cai com o consumo especifico, e a massa cai enquanto queima
-- eletrico: autonomia e funcao da **area do disco**, nao da bateria
+**Turbina:** a massa cai enquanto queima, entao a autonomia sai de uma integral e a
+estimativa a taxa constante subestima.
 
+**Eletrico:** a autonomia depende de **area do disco e de bateria ao mesmo tempo**,
+e nao de uma so das duas:
+
+    t = E_util / P        E_util = m_bateria * e_especifica * DoD
     P/T = sqrt(L / (2*rho)) / (FM * eta)     com  L = T/A  (carga de disco)
 
-Como ``P`` cresce com ``m^1.5``, cada quilo de bateria carrega a si mesmo. Triplicar
-a bateria so dobra a autonomia. Nao existe "mochila eletrica de 30 minutos"; existe
-"aeronave de 3 m de diametro de 30 minutos".
+⚠ Uma revisao anterior deste modulo afirmava "funcao da area, nao da bateria". Era
+**falso**, e contradizia a propria assinatura de :func:`electric_endurance_s`, que
+exige ``battery_kg``. A afirmacao correta e mais forte, porque e quantitativa: como
+``P`` cresce com ``m^1.5`` e a bateria entra na massa sustentada, a autonomia tem
+**maximo interior** em massa de bateria, e esse maximo tem forma fechada:
+
+    t(m_b) proporcional a  m_b / (m_seco + m_b)^1.5
+    dt/dm_b = 0   <=>   m_b = 2 * m_seco
+
+Ver :func:`optimal_battery_mass_kg`. Passado esse ponto, adicionar bateria **reduz**
+a autonomia: o quilo a mais nao paga o proprio transporte. Por isso "e so por mais
+bateria" nao e resposta, e por isso a area continua sendo a alavanca real.
 """
 
 from __future__ import annotations
@@ -33,6 +46,10 @@ __all__ = [
     "turbine_endurance_s",
     "TurbineEndurance",
     "disk_area_from_rotors_m2",
+    "optimal_battery_mass_kg",
+    "ElectricOptimum",
+    "max_electric_endurance_s",
+    "disk_area_for_endurance_m2",
 ]
 
 FIGURE_OF_MERIT_DEFAULT: float = 0.70
@@ -216,3 +233,144 @@ def turbine_endurance_s(
         final_flow_kg_s=fluxo_final,
         fuel_burned_kg=usable_fuel_kg,
     )
+
+
+def optimal_battery_mass_kg(dry_mass_kg: float) -> float:
+    """Massa de bateria que **maximiza** a autonomia: o dobro da massa seca.
+
+    Derivacao. Com potencia de pairado ``P ~ (m_g*g)^1.5 / sqrt(2*rho*A)`` e energia
+    util ``E ~ m_b``, a autonomia e
+
+        t(m_b) = C * m_b / (m_seco + m_b)^1.5
+
+    e a derivada se anula quando
+
+        (m_seco + m_b) - 1.5*m_b = 0   =>   m_b = 2 * m_seco
+
+    ⚠ O resultado e **independente** de area do disco, densidade, energia especifica,
+    figura de merito e rendimento de motor: todos entram em ``C``, que nao move o
+    ponto de maximo. Eles mudam **quanto** de autonomia, nunca **onde** esta o otimo.
+
+    ⚠ E o maximo e interior, nao assintotico: com ``m_b > 2*m_seco`` a autonomia
+    **cai**. "Poe mais bateria" deixa de funcionar antes do que a intuicao sugere.
+
+    Args:
+        dry_mass_kg: massa de tudo **menos** a bateria, ja incluindo piloto,
+            estrutura, rotores e carga util.
+    """
+    if not math.isfinite(dry_mass_kg) or dry_mass_kg <= 0.0:
+        raise ValueError(f"massa seca precisa ser positiva e finita, recebeu {dry_mass_kg!r}")
+    return 2.0 * dry_mass_kg
+
+
+@dataclass(frozen=True, slots=True)
+class ElectricOptimum:
+    """Melhor autonomia eletrica possivel para uma massa seca e uma area de disco.
+
+    "Melhor possivel" no sentido estrito de otimizar **so** a massa de bateria. Nao
+    e previsao de desempenho: continua condicional a energia especifica, figura de
+    merito e rendimento declarados, e a modelo de pairado sem vento.
+    """
+
+    battery_kg: float
+    gross_kg: float
+    endurance_s: float
+    disk_loading_N_m2: float
+    hover_power_W: float
+
+    @property
+    def endurance_min(self) -> float:
+        return self.endurance_s / 60.0
+
+    @property
+    def battery_mass_fraction(self) -> float:
+        """Fracao da massa bruta que e bateria. No otimo vale sempre ``2/3``."""
+        return self.battery_kg / self.gross_kg
+
+
+def max_electric_endurance_s(
+    *,
+    dry_mass_kg: float,
+    disk_area_m2: float,
+    pack_specific_energy_Wh_kg: float = 180.0,
+    depth_of_discharge: float = 0.85,
+    density_kg_m3: float = RHO_SEA_LEVEL_ISA,
+    figure_of_merit: float = FIGURE_OF_MERIT_DEFAULT,
+    motor_efficiency: float = MOTOR_EFFICIENCY_DEFAULT,
+) -> ElectricOptimum:
+    """Autonomia no otimo de bateria, com a massa bruta que resulta dele.
+
+    ⚠ A massa bruta **nao** e dado de entrada aqui, e sim consequencia: no otimo ela
+    vale ``3 * m_seco``. Fixar massa bruta e massa de bateria ao mesmo tempo e o erro
+    que faz uma comparacao entre eletrico e combustao parecer justa quando nao e.
+    """
+    battery_kg = optimal_battery_mass_kg(dry_mass_kg)
+    gross_kg = dry_mass_kg + battery_kg
+    endurance = electric_endurance_s(
+        gross_kg=gross_kg,
+        disk_area_m2=disk_area_m2,
+        battery_kg=battery_kg,
+        pack_specific_energy_Wh_kg=pack_specific_energy_Wh_kg,
+        depth_of_discharge=depth_of_discharge,
+        density_kg_m3=density_kg_m3,
+        figure_of_merit=figure_of_merit,
+        motor_efficiency=motor_efficiency,
+    )
+    thrust_N = gross_kg * G0
+    return ElectricOptimum(
+        battery_kg=battery_kg,
+        gross_kg=gross_kg,
+        endurance_s=endurance,
+        disk_loading_N_m2=thrust_N / disk_area_m2,
+        hover_power_W=electrical_hover_power_W(
+            thrust_N,
+            disk_area_m2,
+            density_kg_m3=density_kg_m3,
+            figure_of_merit=figure_of_merit,
+            motor_efficiency=motor_efficiency,
+        ),
+    )
+
+
+def disk_area_for_endurance_m2(
+    *,
+    dry_mass_kg: float,
+    target_endurance_s: float,
+    pack_specific_energy_Wh_kg: float = 180.0,
+    depth_of_discharge: float = 0.85,
+    density_kg_m3: float = RHO_SEA_LEVEL_ISA,
+    figure_of_merit: float = FIGURE_OF_MERIT_DEFAULT,
+    motor_efficiency: float = MOTOR_EFFICIENCY_DEFAULT,
+) -> float:
+    """Area de disco necessaria para uma autonomia alvo, **ja no otimo de bateria**.
+
+    Esta e a pergunta de dimensionamento correta para o ramo eletrico, e substitui a
+    forma ingenua "area necessaria com bateria fixa", que responde a uma pergunta
+    diferente e mais otimista.
+
+    Invertendo a autonomia no otimo, onde ``m_b = 2*m_seco`` e ``m_g = 3*m_seco``:
+
+        t = K * sqrt(2*rho*A),   K = 2*e*DoD*3600*FM*eta / ( g^1.5 * 3^1.5 * sqrt(m_seco) )
+        A = (t/K)^2 / (2*rho)
+
+    ⚠ ``A`` cresce com o **quadrado** da autonomia alvo. Dobrar o tempo de voo exige
+    quadruplicar a area de disco, nao o dobro. E essa area e geometria fisica do
+    veiculo, nao um componente que se compra maior.
+    """
+    if target_endurance_s <= 0.0:
+        raise ValueError("autonomia alvo precisa ser positiva")
+    if not 0.0 < depth_of_discharge <= 1.0:
+        raise ValueError("profundidade de descarga em (0, 1]")
+    if not 0.0 < figure_of_merit <= 1.0 or not 0.0 < motor_efficiency <= 1.0:
+        raise ValueError("eficiencias precisam estar em (0, 1]")
+    if not math.isfinite(dry_mass_kg) or dry_mass_kg <= 0.0:
+        raise ValueError("massa seca precisa ser positiva e finita")
+
+    energia_J_por_kg_seco = 2.0 * pack_specific_energy_Wh_kg * depth_of_discharge * 3600.0
+    k = (
+        energia_J_por_kg_seco
+        * figure_of_merit
+        * motor_efficiency
+        / (G0**1.5 * 3.0**1.5 * math.sqrt(dry_mass_kg))
+    )
+    return (target_endurance_s / k) ** 2 / (2.0 * density_kg_m3)

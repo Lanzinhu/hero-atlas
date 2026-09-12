@@ -3,8 +3,13 @@
 Ver vault/04 - Fisica/Autonomia e energia.md
 
 O resultado mais interessante do estudo esta aqui: as duas tecnologias obedecem leis
-diferentes. Turbina depende do consumo especifico; **eletrico depende da area do
-disco, nao da bateria.**
+diferentes. Turbina depende do consumo especifico e da massa que cai queimando.
+Eletrico depende de area de disco **e** de massa de bateria ao mesmo tempo, com
+maximo interior em bateria: ver :func:`optimal_battery_mass_kg`.
+
+⚠ Uma versao anterior deste arquivo dizia "depende da area, nao da bateria". Era
+falso. O teste :func:`test_otimo_de_bateria_bate_com_maximizacao_numerica` existe
+para que a afirmacao correta fique presa a um numero.
 """
 
 from __future__ import annotations
@@ -14,11 +19,14 @@ import math
 import pytest
 
 from hero_atlas.analysis.energy import (
+    disk_area_for_endurance_m2,
     disk_area_from_rotors_m2,
     electric_endurance_s,
     electrical_hover_power_W,
     ideal_hover_power_W,
     induced_velocity_m_s,
+    max_electric_endurance_s,
+    optimal_battery_mass_kg,
     power_per_newton_W_N,
     turbine_endurance_s,
 )
@@ -256,3 +264,107 @@ def test_turbina_gasta_muito_mais_potencia_por_newton_que_rotor():
     assert turbina_w_por_n == pytest.approx(294.5, abs=1.0)
     assert rotor_w_por_n < 20.0
     assert turbina_w_por_n / rotor_w_por_n > 20.0
+
+
+# ---------------------------------------------------------------------------
+# Otimo de bateria: a correcao da afirmacao "area, nao bateria"
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("massa_seca_kg", [40.0, 80.0, 117.0, 250.0])
+def test_otimo_de_bateria_bate_com_maximizacao_numerica(massa_seca_kg: float) -> None:
+    """A forma fechada ``m_b = 2*m_seco`` e realmente o maximo, nao um chute.
+
+    Varre a massa de bateria e confere que o otimo analitico vence toda a grade.
+    """
+    area = 0.55
+    otimo_analitico = optimal_battery_mass_kg(massa_seca_kg)
+    assert otimo_analitico == pytest.approx(2.0 * massa_seca_kg)
+
+    melhor_numerico = max(
+        (b for b in [0.05 * massa_seca_kg * k for k in range(1, 120)]),
+        key=lambda b: electric_endurance_s(
+            gross_kg=massa_seca_kg + b, disk_area_m2=area, battery_kg=b
+        ),
+    )
+    assert melhor_numerico == pytest.approx(otimo_analitico, rel=0.05)
+
+    t_otimo = electric_endurance_s(
+        gross_kg=massa_seca_kg + otimo_analitico, disk_area_m2=area, battery_kg=otimo_analitico
+    )
+    for fator in (0.4, 0.7, 1.4, 2.5, 5.0):
+        b = fator * otimo_analitico
+        t = electric_endurance_s(gross_kg=massa_seca_kg + b, disk_area_m2=area, battery_kg=b)
+        assert t <= t_otimo + 1e-9, f"fator {fator} superou o otimo analitico"
+
+
+def test_otimo_de_bateria_nao_depende_de_area_nem_de_eficiencia() -> None:
+    """Area, densidade e rendimentos mudam **quanto**, nunca **onde** esta o otimo.
+
+    Todos entram na constante multiplicativa da autonomia, que nao move o ponto de
+    maximo. E por isso que o resultado pode ser afirmado sem escolher rotor.
+    """
+    massa_seca = 90.0
+    esperado = optimal_battery_mass_kg(massa_seca)
+    for area, fm, eta, wh in [(0.2, 0.6, 0.85, 150.0), (4.0, 0.8, 0.95, 300.0)]:
+        melhor = max(
+            (0.05 * massa_seca * k for k in range(1, 120)),
+            key=lambda b: electric_endurance_s(
+                gross_kg=massa_seca + b,
+                disk_area_m2=area,
+                battery_kg=b,
+                pack_specific_energy_Wh_kg=wh,
+                figure_of_merit=fm,
+                motor_efficiency=eta,
+            ),
+        )
+        assert melhor == pytest.approx(esperado, rel=0.05)
+
+
+def test_no_otimo_a_bateria_e_dois_tercos_da_massa_bruta() -> None:
+    otimo = max_electric_endurance_s(dry_mass_kg=100.0, disk_area_m2=1.0)
+    assert otimo.battery_kg == pytest.approx(200.0)
+    assert otimo.gross_kg == pytest.approx(300.0)
+    assert otimo.battery_mass_fraction == pytest.approx(2.0 / 3.0)
+
+
+def test_area_para_autonomia_inverte_a_autonomia_no_otimo() -> None:
+    """A inversa fecha o ciclo: area -> autonomia -> area devolve a mesma area."""
+    for area in (0.2, 0.55, 2.0, 8.0):
+        otimo = max_electric_endurance_s(dry_mass_kg=85.0, disk_area_m2=area)
+        de_volta = disk_area_for_endurance_m2(
+            dry_mass_kg=85.0, target_endurance_s=otimo.endurance_s
+        )
+        assert de_volta == pytest.approx(area, rel=1e-12)
+
+
+def test_area_cresce_com_o_quadrado_da_autonomia() -> None:
+    """Dobrar o tempo de voo exige **quadruplicar** a area, nao dobrar.
+
+    E o numero que mata a mochila eletrica: area e geometria do veiculo, nao um
+    componente que se compra maior.
+    """
+    a1 = disk_area_for_endurance_m2(dry_mass_kg=85.0, target_endurance_s=300.0)
+    a2 = disk_area_for_endurance_m2(dry_mass_kg=85.0, target_endurance_s=600.0)
+    assert a2 / a1 == pytest.approx(4.0, rel=1e-12)
+
+
+def test_autonomia_cai_depois_do_otimo() -> None:
+    """Passado o otimo, mais bateria **reduz** a autonomia. O maximo e interior."""
+    seco = 80.0
+    otimo = optimal_battery_mass_kg(seco)
+    antes = electric_endurance_s(
+        gross_kg=seco + 0.5 * otimo, disk_area_m2=0.6, battery_kg=0.5 * otimo
+    )
+    pico = electric_endurance_s(gross_kg=seco + otimo, disk_area_m2=0.6, battery_kg=otimo)
+    depois = electric_endurance_s(
+        gross_kg=seco + 4.0 * otimo, disk_area_m2=0.6, battery_kg=4.0 * otimo
+    )
+    assert antes < pico
+    assert depois < pico
+
+
+@pytest.mark.parametrize("valor", [0.0, -1.0, float("nan"), float("inf")])
+def test_massa_seca_invalida_e_recusada(valor: float) -> None:
+    with pytest.raises(ValueError):
+        optimal_battery_mass_kg(valor)
