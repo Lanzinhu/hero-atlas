@@ -20,9 +20,11 @@ import pytest
 from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
 from hero_atlas.analysis.energy import turbine_endurance_s
 from hero_atlas.analysis.mission_energy import (
+    REFERENCE_HOVER_MISSION,
     BatteryStorage,
     FuelStorage,
     GeometricThrustDemand,
+    MissionEnergyResult,
     MissionPhase,
     MissionProfile,
     ScalarThrustDemand,
@@ -227,7 +229,7 @@ def test_missao_com_geometria_real_fecha_e_registra_margem() -> None:
     )
     assert r.termination_reason is TerminationReason.RESERVE_REACHED
     assert r.hover_endurance_s > 60.0
-    assert 0.0 < r.minimum_thrust_margin_ratio < 1.0
+    assert 0.0 < r.min_upper_thrust_headroom_ratio < 1.0
 
 
 def test_trim_de_menor_consumo_gasta_toda_a_margem_de_controle() -> None:
@@ -257,8 +259,8 @@ def test_trim_de_menor_consumo_gasta_toda_a_margem_de_controle() -> None:
     menor_consumo = resultados[TrimObjective.MIN_THRUST]
     maior_margem = resultados[TrimObjective.MAX_MARGIN]
 
-    assert menor_consumo.minimum_thrust_margin_ratio == pytest.approx(0.0, abs=1e-9)
-    assert maior_margem.minimum_thrust_margin_ratio > 0.10
+    assert menor_consumo.min_upper_thrust_headroom_ratio == pytest.approx(0.0, abs=1e-9)
+    assert maior_margem.min_upper_thrust_headroom_ratio > 0.10
     assert menor_consumo.hover_endurance_s >= maior_margem.hover_endurance_s
 
 
@@ -350,3 +352,58 @@ def test_potencia_somada_por_rotor_supera_a_forma_agregada() -> None:
     desiguais = np.array([100.0, 150.0, 350.0, 400.0])
     assert desiguais.sum() == pytest.approx(iguais.sum())
     assert armazenamento.power_W(desiguais, 1.225) > armazenamento.power_W(iguais, 1.225)
+
+
+# ---------------------------------------------------------------------------
+# Contratos corrigidos apos a rodada 18 de revisao externa
+# ---------------------------------------------------------------------------
+
+
+def test_fase_depois_da_aberta_e_recusada() -> None:
+    """Fase apos a aberta **nunca executa**, e um perfil assim mente sobre a missao.
+
+    A fase aberta so termina quando a reserva acaba, e nesse instante a missao
+    encerra. Declarar uma descida ali produz um perfil que parece operacional e nao e.
+    """
+    with pytest.raises(ValueError, match="nunca executam"):
+        MissionProfile(
+            phases=(
+                MissionPhase("pairado", duration_s=None),
+                MissionPhase("descida", duration_s=10.0, vertical_speed_m_s=-0.5),
+            )
+        )
+
+
+def test_missao_de_referencia_nao_tem_fase_morta() -> None:
+    """E a autonomia que ela mede exclui reserva de descida, o que fica declarado."""
+    fases = [f.name for f in REFERENCE_HOVER_MISSION.phases]
+    assert fases[-1] == "pairado"
+    assert REFERENCE_HOVER_MISSION.phases[-1].open_ended
+    assert "descida" not in fases
+
+
+def test_fase_aberta_no_fim_e_aceita() -> None:
+    perfil = MissionProfile(
+        phases=(
+            MissionPhase("subida", duration_s=5.0),
+            MissionPhase("pairado", duration_s=None),
+        )
+    )
+    assert perfil.phases[-1].open_ended
+
+
+def test_folga_superior_nao_e_margem_de_wrench() -> None:
+    """O nome diz o que a grandeza mede, e o docstring diz o que ela **nao** mede.
+
+    ``min_i (1 - T_i/T_i_max)`` ignora ``T_min``, a geometria da alocacao, o wrench
+    exigido e toda a autoridade dinamica. Zero aqui e condicao necessaria de perda de
+    autoridade para cima, nunca suficiente para concluir sobre controlabilidade.
+    """
+    campos = MissionEnergyResult.__dataclass_fields__
+    assert "min_upper_thrust_headroom_ratio" in campos
+    assert "minimum_thrust_margin_ratio" not in campos
+
+    doc = MissionEnergyResult.__doc__ or ""
+    fonte = evaluate_mission_energy.__module__
+    assert fonte.endswith("mission_energy")
+    assert doc

@@ -1,0 +1,92 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+EXPERIMENTO 2: mesma massa embarcada, eletrico contra combustivel
+massa seca 95 kg, sem energia. Geometria de 7 bocais, posto 6.
+missao: 3 s de arranque, 10 s de subida, pairado ate a reserva de 20 por cento.
+ATENCAO: geometria plausivel nao medida; consumo de catalogo extrapolado.
+
+area de disco assumida no ramo eletrico: 0.266 m2
+  (7 rotores de 22 cm, o maior que cabe junto ao braco sem travar o movimento)
+
+m_energia   bruto | COMBUSTAO decolagem |  ELETRICO decolagem |  razao
+       kg      kg |       min         g |       min        kJ |      x
+----------------------------------------------------------------------
+        5     100 |      1.17      155.7 |      0.16      294.5 |    7.4
+       10     105 |      2.46      163.7 |      0.50      309.9 |    4.9
+       15     110 |      3.68      171.7 |      0.80      326.3 |    4.6
+       20     115 |      4.83      179.7 |      1.07      343.4 |    4.5
+       30     125 |      6.96      195.8 |      1.54      380.2 |    4.5
+       50     145 |     10.62      227.9 |      2.21      462.6 |    4.8
+
+decolagem = consumo so dos 3 s de arranque, separado do custo de pairar
+razao = quantas vezes a combustao pura o eletrico, na mesma massa embarcada
+
+AUTONOMIA POR QUILO EMBARCADO
+
+  10 kg embarcados: combustao   14.8 s/kg, eletrico    3.0 s/kg
+  20 kg embarcados: combustao   14.5 s/kg, eletrico    3.2 s/kg
+
+ONDE O RAMO ELETRICO REALMENTE PARA
+
+  empuxo instalado:                  245 kgf
+  maior massa bruta com trim:      208.1 kg   (so pairado)
+  logo, bateria maxima:            113.1 kg   (so pairado)
+  bateria que ainda DECOLA:        103.0 kg
+  bateria do otimo irrestrito:     190.0 kg
+
+  ⚠ Dois tetos, e o que manda e o menor. O otimo de bateria fica fora do que a
+    geometria equilibra, e a massa que ainda paira ja nao consegue ACELERAR
+    para cima: pedir 0,5 m/s2 de subida corta mais 10 kg de bateria. A
+    autonomia eletrica nao para por area de rotor, para por saturacao de massa.
+
+  teto de autonomia eletrica:       2.98 min
+    com 103 kg de bateria e 0.27 m2 de disco
+  mesmo tempo com combustivel:      12.0 kg
+  fator de massa embarcada:          8.5 vezes
+
+  quanta area o eletrico precisaria, com a bateria no teto que decola:
+    area x 1 =  0.27 m2, rotor de 0.22 m ->   2.98 min
+    area x 2 =  0.53 m2, rotor de 0.31 m ->   4.30 min
+    area x 4 =  1.06 m2, rotor de 0.44 m ->   6.17 min
+    area x 8 =  2.13 m2, rotor de 0.62 m ->   8.80 min
+
+POTENCIA DE BARRAMENTO, o numero que decide o hibrido serie
+
+   bruto   rotor a rotor   escalar agregado   razao
+      kg              kW                 kW       x
+----------------------------------------------------
+   120.0           113.4              101.3    1.12
+   150.0           150.7              142.8    1.06
+   208.1           242.8              235.5    1.03
+
+  ⚠ Este numero e faixa parametrica preliminar, NAO especificacao de gerador.
+    O que esta dentro: potencia induzida rotor a rotor, figura de merito,
+    rendimento de motor e de inversor. O que NAO esta: perdas de barramento,
+    rendimento do gerador, buffer, potencia auxiliar, derating termico e
+    margem de contingencia. Cada um desses SOBE o requisito.
+
+  ⚠ Uma versao anterior deste projeto eliminou o hibrido serie dizendo que
+    ele 'resolve energia, nao area'. A frase confundia energia com potencia.
+    A area limita a POTENCIA, e o hibrido serie nao a melhora. Mas o teto do
+    eletrico puro e de MASSA DE BATERIA, e trocar bateria por gerador mais
+    combustivel ataca exatamente esse teto. A eliminacao foi retirada.
+    O ramo agora depende de um numero: kW por kg do conjunto gerador.
+
+VEREDITO DE SELECAO DE TECNOLOGIA
+  INDETERMINATE: 3 ramos abertos (turbina_compacta, hibrido_turbina_com_buffer, hibrido_serie) e 16 incognitas bloqueantes em aberto; a evidencia de hoje restringe arquitetura, nao seleciona tecnologia
+
+  [aberto ] turbina_compacta
+            faltam 5 incognitas bloqueantes
+  [aberto ] hibrido_turbina_com_buffer
+            faltam 8 incognitas bloqueantes
+  [aberto ] hibrido_serie
+            faltam 5 incognitas bloqueantes
+  [fechado] eletrico_distribuido
+            eliminado por: teto de autonomia por saturacao de massa, nao por geometria de rotor. ...
+
+  Nenhum ramo esta aprovado. Aprovacao exige os marcos 3 a 5.

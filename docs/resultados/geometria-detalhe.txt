@@ -1,0 +1,85 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+GEOMETRIA SOBREVIVENTE, DESPEJO AUDITAVEL
+tres pares de braco com envergadura, altura e inclinacao escalonadas,
+mais um bocal dorsal. ATENCAO: plausivel, nao medida.
+
+massa de referencia 117 kg, teto 35 kgf por bocal
+ponto de referencia no corpo: [0. 0. 0.]
+
+BOCAIS: posicao e direcao no referencial do corpo
+nome               x       y       z |      nx      ny      nz |   Tmin   Tmax
+                   m       m       m |       -       -       - |    kgf    kgf
+------------------------------------------------------------------------------
+par0_esq       0.320  -0.300  -0.150 |  0.2506 -0.2506 -0.9351 |   3.50  35.00
+par0_dir       0.320   0.300  -0.150 |  0.2506  0.2506 -0.9351 |   3.50  35.00
+par1_esq       0.200  -0.400  -0.260 |  0.0000 -0.5000 -0.8660 |   3.50  35.00
+par1_dir       0.200   0.400  -0.260 |  0.0000  0.5000 -0.8660 |   3.50  35.00
+par2_esq       0.020  -0.350  -0.370 | -0.2506 -0.6846 -0.6846 |   3.50  35.00
+par2_dir       0.020   0.350  -0.370 | -0.2506  0.6846 -0.6846 |   3.50  35.00
+dorsal        -0.150   0.000   0.100 |  0.0000  0.0000 -1.0000 |   3.50  35.00
+
+MATRIZ DE ALOCACAO W, seis linhas por sete colunas
+linhas: Fx Fy Fz Mx My Mz   colunas: um bocal cada, na ordem acima
+(forca adimensional por newton de empuxo; momento em metro por newton)
+
+        par0_esq    par0_dir    par1_esq    par1_dir    par2_esq    par2_dir      dorsal
+Fx       0.25056     0.25056     0.00000     0.00000    -0.25056    -0.25056     0.00000
+Fy      -0.25056     0.25056    -0.50000     0.50000    -0.68455     0.68455     0.00000
+Fz      -0.93511    -0.93511    -0.86603    -0.86603    -0.68455    -0.68455    -1.00000
+Mx       0.24295    -0.24295     0.21641    -0.21641    -0.01369     0.01369    -0.00000
+My       0.26165     0.26165     0.17321     0.17321     0.10640     0.10640    -0.15000
+Mz      -0.00501     0.00501    -0.10000     0.10000    -0.10139     0.10139    -0.00000
+
+AUTORIDADE
+  posto:                    6 de 6
+  valores singulares:       [2.30465 1.29278 0.51934 0.37579 0.31331 0.05461]
+  menor nao nulo:           0.054605
+  condicionamento:          42.21
+  graus de atuador ociosos: 1
+
+CENTRO DE MASSA
+  janela longitudinal viavel: [0.1050, 0.2100] m
+  usado nos trims abaixo:     x = 0.1575 m, y = 0, z = 0
+
+TRIM: a distribuicao de empuxo nao e uniforme, e depende do objetivo
+
+  --- objetivo: min_thrust --- viavel: True
+      par0_esq      12.078 kgf
+      par0_dir      12.078 kgf
+      par1_esq      35.000 kgf  <-- NO TETO
+      par1_dir      35.000 kgf  <-- NO TETO
+      par2_esq      12.078 kgf
+      par2_dir      12.078 kgf
+      dorsal        17.252 kgf
+      soma 135.566 kgf | menor 12.078 | maior 35.000 | media 19.367
+      razao de projecao vertical:  0.863048
+      folga ao limite mais proximo: 0.000 kgf
+      menor folga superior, fracao do teto: 0.000000
+      limites ativos: ('par1_esq_max', 'par1_dir_max')
+
+  --- objetivo: max_margin --- viavel: True
+      par0_esq      19.679 kgf
+      par0_dir      19.679 kgf
+      par1_esq      19.679 kgf
+      par1_dir      19.679 kgf
+      par2_esq      19.679 kgf
+      par2_dir      19.679 kgf
+      dorsal        19.168 kgf
+      soma 137.242 kgf | menor 19.168 | maior 19.679 | media 19.606
+      razao de projecao vertical:  0.852507
+      folga ao limite mais proximo: 15.321 kgf
+      menor folga superior, fracao do teto: 0.437743
+      limites ativos: (nenhum)
+
+CONFERENCIA: peso dividido pela razao de projecao da a soma de empuxo
+  117.0 / 0.863048 = 135.566 kgf
+  soma dos empuxos do trim:               135.566 kgf
+
+⚠ E por isso que 'massa dividida pelo numero de bocais' esta errado: ignora
+  a projecao vertical e supoe distribuicao uniforme, que o solver desmente.

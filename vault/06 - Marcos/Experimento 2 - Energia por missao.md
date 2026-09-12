@@ -6,7 +6,12 @@ data: 2026-09-12
 tags: [energia, missao, autonomia, propulsao]
 ---
 
-# Experimento 2 — Energia por missão: elétrico contra combustível
+# Experimento 2 — Energia armazenada sob massa seca e geometria fixadas
+
+⚠ **O título importa.** Isto **não** é "comparação entre arquitetura elétrica e
+arquitetura a combustão". É comparação de **armazenamento de energia** com massa
+seca, geometria, piloto, reserva e missão fixados. A diferença está na seção
+[[#O que este experimento não compara]].
 
 `python tools/compare_energy_architectures.py`
 
@@ -51,6 +56,30 @@ para pairado. Energia específica de pack declarada, sem cópia arquivada.
 
 Por quilo embarcado: combustão entrega cerca de 14,7 s/kg, elétrico cerca de 3,1 s/kg.
 
+## O que este experimento não compara
+
+Manter a massa seca igual entre as famílias é o que torna a comparação controlada, e é
+também o que a limita. Na prática as massas secas **não** são iguais:
+
+| Família | Massa que só ela carrega |
+|---|---|
+| Elétrico distribuído | rotores, motores, inversores, barramento, gerenciamento de bateria, cabeamento de alta corrente, estrutura de suporte |
+| Turbina direta | microturbinas, unidade de controle, tanques, linhas, bombas, proteção térmica, estrutura |
+| Híbrido série | gerador, eletrônica de potência, buffer, motores, cabos, tanque, controle térmico |
+| Turbina com buffer | turbina, buffer, eletrônica, atuadores auxiliares, estrutura e proteção térmica |
+
+Nenhuma dessas massas entrou no livro de massa ainda. Está registrado como incógnita
+bloqueante nos quatro ramos de [[ADR-008 - Ramos de propulsao sem selecao]].
+
+## O que a autonomia aqui mede, exatamente
+
+**Tempo de pairado até a reserva, sem reserva separada de descida ou retorno.**
+
+Uma versão anterior do perfil declarava uma fase de descida depois do pairado aberto.
+Essa fase **nunca executava**: o pairado aberto só termina quando a reserva acaba, e
+nesse instante a missão encerra. O perfil parecia operacional e não era. Agora
+`MissionProfile` **recusa** qualquer fase depois de uma fase aberta.
+
 ## O achado principal: o elétrico satura, não é impossível
 
 O ramo elétrico **fecha trim e voa**. O que o limita não é diâmetro de rotor, e sim
@@ -78,24 +107,53 @@ cresce com o quadrado da autonomia alvo, então é uma alavanca cara.
 
 **"Autonomia elétrica é função da área, não da bateria"** era falsa, e contradizia a
 assinatura da própria função. A afirmação correta é quantitativa: a autonomia tem
-**máximo interior** em massa de bateria, com forma fechada `m_b = 2 · m_seco`,
-independente de área, densidade e rendimentos. Ver [[Autonomia e energia]].
+**máximo interior** em massa de bateria, com forma fechada `m_b = 2 · m_seco`.
+
+⚠ E essa forma fechada é **referência analítica do modelo idealizado, não identidade
+universal**. Ela supõe potência auxiliar nula, sem teto de trim, sem saturação e sem
+fase de aceleração. Com carga auxiliar o ótimo **sobe**, e a forma para isso é
+`optimal_battery_mass_with_auxiliary_kg`. Com o teto de trim ele **desce**, de 190 kg
+para 103 kg, que é exatamente o achado desta página. Ver [[Autonomia e energia]].
 
 **A eliminação do híbrido série** confundia energia com potência e foi retirada. Ver
 [[ADR-008 - Ramos de propulsao sem selecao]].
 
-## Conflito entre autonomia e autoridade
+## Conflito entre autonomia e folga de empuxo
 
 O trim de menor empuxo minimiza consumo, que é o objetivo certo para autonomia. Mas
-ele **encosta um par de bocais no teto**, então a margem de controle vai a zero
-exatamente. Maximizar margem preserva autoridade e gasta mais combustível.
+ele **encosta um par de bocais no teto**, então a folga superior de empuxo vai a zero
+exatamente. Maximizar folga preserva capacidade de subir empuxo e gasta mais.
 
-Autonomia e autoridade puxam para lados opostos, e a escolha é de projeto, não de
-solver. Fixado em `test_trim_de_menor_consumo_gasta_toda_a_margem_de_controle`.
+⚠ **A grandeza medida é `min_upper_thrust_headroom_ratio`, não a margem de wrench.**
+Ela é `min_i (1 − T_i/T_i_max)`, e ignora `T_min`, a geometria da matriz de alocação,
+as direções possíveis de variação, o wrench exigido e toda a autoridade dinâmica. Zero
+aqui é condição **necessária** de perda de autoridade para cima, nunca suficiente para
+concluir sobre controlabilidade. A conclusão completa exige a margem de wrench.
+
+Autonomia e folga puxam para lados opostos, e a escolha é de projeto, não de solver.
+Fixado em `test_trim_de_menor_consumo_gasta_toda_a_margem_de_controle`.
+
+## Potência de barramento: faixa paramétrica, não especificação
+
+Calculada pelo mesmo caminho do experimento, com trim geométrico e soma rotor a rotor:
+
+| Massa bruta | Rotor a rotor | Escalar agregado |
+|---|---|---|
+| 120,0 kg | 113,4 kW | 101,3 kW |
+| 150,0 kg | 150,7 kW | 142,8 kW |
+| 208,1 kg | 242,8 kW | 235,5 kW |
+
+A forma escalar subestima em até 12 por cento, porque a potência induzida é convexa em
+empuxo e a forma agregada ignora a desigualdade que o trim produz.
+
+⚠ **Não é requisito de gerador.** Dentro: potência induzida rotor a rotor, figura de
+mérito, rendimento de motor e de inversor. Fora: perdas de barramento, rendimento do
+gerador, buffer, potência auxiliar, derating térmico e margem de contingência. Cada um
+desses **sobe** o requisito.
 
 ## Veredito de seleção
 
-`INDETERMINATE`. Três ramos abertos, quinze incógnitas bloqueantes. A evidência de
+`INDETERMINATE`. Três ramos abertos, dezesseis incógnitas bloqueantes. A evidência de
 hoje **restringe arquitetura, não seleciona tecnologia**.
 
 ## Verificação

@@ -47,6 +47,7 @@ __all__ = [
     "TurbineEndurance",
     "disk_area_from_rotors_m2",
     "optimal_battery_mass_kg",
+    "optimal_battery_mass_with_auxiliary_kg",
     "ElectricOptimum",
     "max_electric_endurance_s",
     "disk_area_for_endurance_m2",
@@ -247,9 +248,22 @@ def optimal_battery_mass_kg(dry_mass_kg: float) -> float:
 
         (m_seco + m_b) - 1.5*m_b = 0   =>   m_b = 2 * m_seco
 
-    ⚠ O resultado e **independente** de area do disco, densidade, energia especifica,
-    figura de merito e rendimento de motor: todos entram em ``C``, que nao move o
-    ponto de maximo. Eles mudam **quanto** de autonomia, nunca **onde** esta o otimo.
+    ⚠ **Hipoteses sob as quais isto vale, e so sob elas.** O resultado e uma
+    referencia analitica do modelo idealizado de pairado, nao identidade universal:
+
+    - energia util estritamente proporcional a massa de bateria;
+    - potencia de pairado estritamente ``~ (m_seco + m_b)^1.5``;
+    - **potencia auxiliar nula**. Com ``P_aux > 0`` o otimo se desloca para cima. Ver
+      :func:`optimal_battery_mass_with_auxiliary_kg`;
+    - **sem teto de trim, sem saturacao de empuxo e sem fase de aceleracao**. Num
+      perfil de missao real o teto de massa costuma morder antes do otimo: no
+      experimento 2 o otimo pedia 190 kg e a geometria so permitia 103 kg;
+    - geometria, densidade e rendimentos fixos ao longo da varredura.
+
+    Dentro dessas hipoteses o resultado e **independente** de area do disco,
+    densidade, energia especifica, figura de merito e rendimento de motor: todos
+    entram em ``C``, que nao move o ponto de maximo. Eles mudam **quanto** de
+    autonomia, nunca **onde** esta o otimo.
 
     ⚠ E o maximo e interior, nao assintotico: com ``m_b > 2*m_seco`` a autonomia
     **cai**. "Poe mais bateria" deixa de funcionar antes do que a intuicao sugere.
@@ -257,6 +271,11 @@ def optimal_battery_mass_kg(dry_mass_kg: float) -> float:
     Args:
         dry_mass_kg: massa de tudo **menos** a bateria, ja incluindo piloto,
             estrutura, rotores e carga util.
+
+            ⚠ E **especifica da familia de propulsao**. Um veiculo eletrico carrega
+            motores, inversores, gerenciamento de bateria e cabeamento de alta
+            corrente que um de turbina nao carrega, e vice-versa. Comparar familias
+            com a mesma massa seca compara armazenamento de energia, nao arquiteturas.
     """
     if not math.isfinite(dry_mass_kg) or dry_mass_kg <= 0.0:
         raise ValueError(f"massa seca precisa ser positiva e finita, recebeu {dry_mass_kg!r}")
@@ -374,3 +393,70 @@ def disk_area_for_endurance_m2(
         / (G0**1.5 * 3.0**1.5 * math.sqrt(dry_mass_kg))
     )
     return (target_endurance_s / k) ** 2 / (2.0 * density_kg_m3)
+
+
+def optimal_battery_mass_with_auxiliary_kg(
+    *,
+    dry_mass_kg: float,
+    disk_area_m2: float,
+    auxiliary_power_W: float,
+    density_kg_m3: float = RHO_SEA_LEVEL_ISA,
+    figure_of_merit: float = FIGURE_OF_MERIT_DEFAULT,
+    motor_efficiency: float = MOTOR_EFFICIENCY_DEFAULT,
+) -> float:
+    """Otimo de bateria **com** potencia auxiliar fixa, que desloca o resultado.
+
+    A forma fechada ``m_b = 2*m_seco`` supoe ``P_aux = 0``. Com uma carga fixa de
+    aviônica e controle, a autonomia passa a ser
+
+        t(m_b) = c * m_b / ( K*(m_seco + m_b)^1.5 + P_aux )
+
+    e anular a derivada da
+
+        P_aux = K * u^0.5 * ( 0.5*u - 1.5*m_seco ),   u = m_seco + m_b
+
+    que nao tem forma fechada simples e e resolvida por busca de raiz. A funcao e
+    crescente em ``u`` acima de ``3*m_seco``, entao a raiz e unica.
+
+    ⚠ O otimo **sobe** com potencia auxiliar, nunca desce: carga fixa e paga por
+    tempo, e mais bateria compra tempo. Com ``P_aux = 0`` esta funcao devolve
+    exatamente ``2*m_seco``, e o teste que fixa isso e parte da suite.
+
+    ⚠ Continua sem teto de trim e sem fase de aceleracao. O otimo aqui pode estar
+    fora do que a geometria equilibra: ver
+    :func:`hero_atlas.analysis.mission_energy.evaluate_mission_energy`.
+    """
+    if not math.isfinite(dry_mass_kg) or dry_mass_kg <= 0.0:
+        raise ValueError("massa seca precisa ser positiva e finita")
+    if disk_area_m2 <= 0.0:
+        raise ValueError("area de disco precisa ser positiva")
+    if auxiliary_power_W < 0.0:
+        raise ValueError("potencia auxiliar nao pode ser negativa")
+    if not 0.0 < figure_of_merit <= 1.0 or not 0.0 < motor_efficiency <= 1.0:
+        raise ValueError("eficiencias precisam estar em (0, 1]")
+
+    if auxiliary_power_W == 0.0:
+        return optimal_battery_mass_kg(dry_mass_kg)
+
+    k = G0**1.5 / (
+        math.sqrt(2.0 * density_kg_m3 * disk_area_m2) * figure_of_merit * motor_efficiency
+    )
+
+    def residuo(u: float) -> float:
+        return k * math.sqrt(u) * (0.5 * u - 1.5 * dry_mass_kg) - auxiliary_power_W
+
+    baixo = 3.0 * dry_mass_kg
+    alto = max(6.0 * dry_mass_kg, 1.0)
+    while residuo(alto) < 0.0:
+        alto *= 2.0
+        if alto > 1e9:
+            raise ValueError("otimo com auxiliar nao encontrado na faixa procurada")
+
+    for _ in range(200):
+        meio = 0.5 * (baixo + alto)
+        if residuo(meio) < 0.0:
+            baixo = meio
+        else:
+            alto = meio
+
+    return 0.5 * (baixo + alto) - dry_mass_kg

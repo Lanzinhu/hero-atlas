@@ -1,0 +1,33 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+EXPERIMENTO 1: geometria de autoridade
+massa 117 kg, empuxo maximo 35 kgf por bocal, marcha lenta 10 por cento
+ATENCAO: geometrias plausiveis, nao medidas. Pairado nivelado, pose congelada.
+
+arquitetura                     n posto  acopl  trim  jan_x  jan_y  roll   sigma  folga falhas
+----------------------------------------------------------------------------------------------
+base 5 bocais                   5  4/6      SIM   sim  13.5    0.0    nao  0.0622    9.0  0/5  
+altura escalonada               5  4/6      nao   sim  13.5    0.0    nao  0.0735    9.0  0/5  
+envergadura escalonada          5  4/6      nao   sim  13.5    0.0    nao  0.1221    9.0  0/5  
+inclinacao lateral escalonada   5  4/6      nao   sim  11.5    0.0    nao  0.2096    5.5  0/5  
+com inclinacao longitudinal     5  5/6      SIM   sim   9.5    0.0    nao  0.1118    7.2  0/5  
+altura + longitudinal           5  5/6      nao   sim  10.5    0.0    nao  0.1241    7.2  0/5  
+tres pares, altura escalonada   7  4/6      nao   sim  20.5    0.0    nao  0.1245   14.5  5/7  
+tres pares + longitudinal       7  5/6      nao   sim  11.0    0.0    nao  0.1158   14.9  2/7  
+3 pares, tudo escalonado        7  5/6      nao   sim  22.0    3.2    SIM  0.0206   15.6  1/7  
+3 pares escalonados + longitudinal  7  6/6      nao   sim  10.5   21.6    SIM  0.0546   15.3  0/7  
+dois pares + dois dorsais       6  5/6      nao   sim  10.5    0.0    nao  0.0533    9.2  0/6  
+
+legenda: jan_x e jan_y em cm; roll = rolagem pura sem forca lateral;
+         sigma = menor valor singular, quao FRACA e a direcao mais fraca;
+         folga = empuxo em kgf ate o limite mais proximo no trim;
+         falhas = perdas unicas que ainda admitem trim
+
+CANDIDATAS QUE MERECEM DINAMICA: 2 de 11
+  3 pares, tudo escalonado: posto 5, janela lateral 3.2 cm, 1 perdas toleradas
+  3 pares escalonados + longitudinal: posto 6, janela lateral 21.6 cm, 0 perdas toleradas

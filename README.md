@@ -41,7 +41,7 @@ Sem hardware. Custo zero. Python.
 | 3 | Dinâmica seis graus de liberdade | corpo rígido e atuador prontos, laço fechado não |
 | 1b | Energia por missão, elétrico contra combustível | entregue |
 
-537 testes, lint e formatação limpos.
+546 testes; o portão de lint e formatação cobre `src/`, `tests/`, `tools/` e `noxfile.py`.
 
 ## A pergunta
 
@@ -83,10 +83,15 @@ resolve.
 Duas variantes sobrevivem, e aparece um conflito: a geometria de maior autoridade tolera **zero**
 falhas, enquanto a de maior redundância não tem rolagem pura.
 
-### Experimento 2: energia por missão, e o elétrico que satura em vez de ser impossível
+### Experimento 2: energia armazenada sob massa seca e geometria fixadas
 
-`python tools/compare_energy_architectures.py` roda a mesma missão nas duas arquiteturas com a
-**mesma massa embarcada**: mesma geometria, mesma massa seca, mesma reserva.
+`python tools/compare_energy_architectures.py` roda a mesma missão com a **mesma massa
+embarcada**: mesma geometria, mesma massa seca, mesma reserva.
+
+⚠ **Não é comparação entre arquiteturas completas.** Manter a massa seca igual é o que torna a
+comparação controlada e é também o seu limite: motores, inversores e gerenciamento de bateria de
+um lado, unidade de controle, tanques e linhas do outro, ainda não entraram no livro de massa. A
+autonomia medida é tempo de pairado até a reserva, **sem** reserva de descida ou retorno.
 
 | Massa embarcada | Combustão | Elétrico |
 |---|---|---|
@@ -105,8 +110,12 @@ eu tinha citado era massa dividida pelo número de bocais; e a eliminação do h
 confundia energia com potência, e foi retirada.
 
 E aparece um conflito que nenhuma das duas análises via sozinha: o trim de **menor consumo**
-encosta um par de bocais no teto, então a margem de controle vai a zero exatamente. Autonomia e
-autoridade puxam para lados opostos.
+encosta um par de bocais no teto, então a folga superior de empuxo vai a zero exatamente.
+
+⚠ Folga de empuxo não é margem de wrench. `min_upper_thrust_headroom_ratio` mede só a distância
+ao teto do propulsor mais carregado, e ignora a geometria da alocação, o wrench exigido e toda a
+autoridade dinâmica. Zero ali é condição necessária de perda de autoridade para cima, nunca
+suficiente para concluir sobre controlabilidade.
 
 ## Números de referência, e o que eles valem
 
@@ -122,6 +131,42 @@ para calibração, nunca como faixa validada do projeto.
 
 A terceira linha é a mais importante do projeto. Ver
 [`vault/08 - Dados/Deck de propulsao instalada - schema.md`](vault/08%20-%20Dados/).
+
+## Resultados versionados, para auditar sem executar
+
+⚠ As tabelas deste projeto **não vivem só no terminal de quem rodou.** As saídas dos experimentos
+são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
+
+| Arquivo | O que traz |
+|---|---|
+| `geometria-detalhe.txt` | os sete bocais com posição, direção e limites; a matriz de alocação inteira; valores singulares; janela de centro de massa; e o trim nos dois objetivos, bocal a bocal |
+| `experimento-1-geometria.txt` | as onze arquiteturas, com posto, janelas, rolagem pura e tolerância a falha |
+| `experimento-2-energia.txt` | elétrico contra combustível por massa embarcada, tetos de massa e potência de barramento |
+
+```bash
+./.venv/Scripts/python.exe tools/refresh_results.py
+```
+
+Resultado que muda sem motivo declarado vira **diff visível** ao lado da mudança de código que o
+causou, e não surpresa silenciosa.
+
+## Resultados versionados, para auditar sem executar
+
+⚠ As tabelas deste projeto **não vivem só no terminal de quem rodou.** As saídas dos experimentos
+são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
+
+| Arquivo | O que traz |
+|---|---|
+| `geometria-detalhe.txt` | os sete bocais com posição, direção e limites; a matriz de alocação inteira; valores singulares; janela de centro de massa; e o trim nos dois objetivos, bocal a bocal |
+| `experimento-1-geometria.txt` | as onze arquiteturas, com posto, janelas, rolagem pura e tolerância a falha única |
+| `experimento-2-energia.txt` | elétrico contra combustível por massa embarcada, os dois tetos de massa e a potência de barramento |
+
+```bash
+./.venv/Scripts/python.exe tools/refresh_results.py
+```
+
+Resultado que muda sem motivo declarado vira **diff visível** ao lado da mudança de código que o
+causou, e não surpresa silenciosa.
 
 ## Como rodar
 

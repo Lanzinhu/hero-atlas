@@ -12,8 +12,11 @@ PY = "3.12"
 def lint(session: nox.Session) -> None:
     """Ruff: lint e formatacao."""
     session.install("ruff")
-    session.run("ruff", "check", "src", "tests", "noxfile.py")
-    session.run("ruff", "format", "--check", "src", "tests")
+    # ⚠ `tools/` entra no portao. Scripts de experimento produzem exatamente os
+    # numeros que vao para relatorio, entao deixa-los fora do lint criava uma pasta
+    # onde resultado publicado nascia sem verificacao nenhuma.
+    session.run("ruff", "check", "src", "tests", "tools", "noxfile.py")
+    session.run("ruff", "format", "--check", "src", "tests", "tools", "noxfile.py")
 
 
 @nox.session(python=PY)

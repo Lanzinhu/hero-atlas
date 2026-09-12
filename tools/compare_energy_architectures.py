@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Experimento 2: mesma massa embarcada de energia, eletrico contra combustivel.
 
 Roda com::
@@ -45,7 +44,7 @@ from hero_atlas.analysis.mission_energy import (  # noqa: E402
 )
 from hero_atlas.analysis.trim import TrimObjective, solve_trim  # noqa: E402
 from hero_atlas.propulsion_family import FAMILIES, selection_verdict  # noqa: E402
-from hero_atlas.units import G0, to_si  # noqa: E402
+from hero_atlas.units import RHO_SEA_LEVEL_ISA, to_si  # noqa: E402
 from hero_atlas.verdict import Verdict  # noqa: E402
 
 MASSA_SECA_KG = 95.0
@@ -196,7 +195,9 @@ def main() -> None:
     for _ in range(50):
         meio = 0.5 * (baixo + alto)
         s_trim = solve_trim(
-            geo, mass_kg=meio, center_of_mass_body_m=CENTRO_DE_MASSA,
+            geo,
+            mass_kg=meio,
+            center_of_mass_body_m=CENTRO_DE_MASSA,
             objective=TrimObjective.MIN_THRUST,
         )
         if s_trim.status is Verdict.SATISFIED:
@@ -214,7 +215,10 @@ def main() -> None:
             storage=BatteryStorage(
                 mass_kg=bateria_kg, source=FONTE_BAT, rotor_disk_area_m2=area_vestivel
             ),
-            demand=demanda(), profile=MISSAO, geometry=geo, step_s=1.0,
+            demand=demanda(),
+            profile=MISSAO,
+            geometry=geo,
+            step_s=1.0,
         )
         return None if r.termination_reason is TerminationReason.TRIM_INFEASIBLE else r
 
@@ -252,7 +256,10 @@ def main() -> None:
         r = evaluate_mission_energy(
             dry_mass_kg=MASSA_SECA_KG,
             storage=FuelStorage(mass_kg=meio_c, source=FONTE_COMB, tsfc_kg_per_N_s=TSFC_SI),
-            demand=demanda(), profile=MISSAO, geometry=geo, step_s=1.0,
+            demand=demanda(),
+            profile=MISSAO,
+            geometry=geo,
+            step_s=1.0,
         )
         if r.hover_endurance_s < alvo:
             baixo_c = meio_c
@@ -268,10 +275,11 @@ def main() -> None:
         d = 2.0 * math.sqrt(a / (7.0 * math.pi))
         r = evaluate_mission_energy(
             dry_mass_kg=MASSA_SECA_KG,
-            storage=BatteryStorage(
-                mass_kg=bateria_max, source=FONTE_BAT, rotor_disk_area_m2=a
-            ),
-            demand=demanda(), profile=MISSAO, geometry=geo, step_s=1.0,
+            storage=BatteryStorage(mass_kg=bateria_max, source=FONTE_BAT, rotor_disk_area_m2=a),
+            demand=demanda(),
+            profile=MISSAO,
+            geometry=geo,
+            step_s=1.0,
         )
         print(
             f"    area x{fator:2d} = {a:5.2f} m2, rotor de {d:4.2f} m -> "
@@ -282,13 +290,38 @@ def main() -> None:
     # ------------------------------------------------------------------
     print("POTENCIA DE BARRAMENTO, o numero que decide o hibrido serie")
     print()
+    # ⚠ A potencia sai do MESMO caminho do experimento: trim geometrico, empuxos
+    # desiguais, soma rotor a rotor. A forma escalar `m*g/razao` com area agregada da
+    # um numero menor, porque a potencia induzida e convexa em empuxo e a forma
+    # agregada ignora a desigualdade que o trim produz. A diferenca vai impressa.
+    escopo_barramento = BatteryStorage(
+        mass_kg=1.0,
+        source=FONTE_BAT,
+        rotor_disk_area_m2=area_vestivel,
+        auxiliary_power_W=0.0,
+    )
+    print(f"{'bruto':>8} {'rotor a rotor':>15} {'escalar agregado':>18} {'razao':>7}")
+    print(f"{'kg':>8} {'kW':>15} {'kW':>18} {'x':>7}")
+    print("-" * 52)
     for bruto in (120.0, 150.0, massa_max):
-        potencia = electrical_hover_power_W(
-            bruto * G0 / 0.8525, area_vestivel, figure_of_merit=0.70, motor_efficiency=0.88
+        pedido = demanda()(bruto, 0.0)
+        if not pedido.feasible:
+            print(f"{bruto:8.1f}   sem trim")
+            continue
+        por_rotor = escopo_barramento.power_W(pedido.thrusts_N, RHO_SEA_LEVEL_ISA)
+        agregado = electrical_hover_power_W(
+            float(pedido.total_N), area_vestivel, figure_of_merit=0.70, motor_efficiency=0.88
         )
         print(
-            f"  bruto {bruto:6.1f} kg -> {potencia / 1000:7.1f} kW continuos no barramento"
+            f"{bruto:8.1f} {por_rotor / 1000:15.1f} {agregado / 1000:18.1f} "
+            f"{por_rotor / agregado:7.2f}"
         )
+    print()
+    print("  ⚠ Este numero e faixa parametrica preliminar, NAO especificacao de gerador.")
+    print("    O que esta dentro: potencia induzida rotor a rotor, figura de merito,")
+    print("    rendimento de motor e de inversor. O que NAO esta: perdas de barramento,")
+    print("    rendimento do gerador, buffer, potencia auxiliar, derating termico e")
+    print("    margem de contingencia. Cada um desses SOBE o requisito.")
     print()
     print("  ⚠ Uma versao anterior deste projeto eliminou o hibrido serie dizendo que")
     print("    ele 'resolve energia, nao area'. A frase confundia energia com potencia.")

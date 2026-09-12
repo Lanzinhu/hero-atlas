@@ -27,6 +27,7 @@ from hero_atlas.analysis.energy import (
     induced_velocity_m_s,
     max_electric_endurance_s,
     optimal_battery_mass_kg,
+    optimal_battery_mass_with_auxiliary_kg,
     power_per_newton_W_N,
     turbine_endurance_s,
 )
@@ -368,3 +369,47 @@ def test_autonomia_cai_depois_do_otimo() -> None:
 def test_massa_seca_invalida_e_recusada(valor: float) -> None:
     with pytest.raises(ValueError):
         optimal_battery_mass_kg(valor)
+
+
+def test_otimo_com_auxiliar_nulo_recupera_a_forma_fechada() -> None:
+    for seco in (40.0, 95.0, 200.0):
+        com_aux = optimal_battery_mass_with_auxiliary_kg(
+            dry_mass_kg=seco, disk_area_m2=0.266, auxiliary_power_W=0.0
+        )
+        assert com_aux == pytest.approx(optimal_battery_mass_kg(seco), rel=1e-9)
+
+
+@pytest.mark.parametrize("aux_W", [150.0, 1000.0, 5000.0])
+def test_potencia_auxiliar_desloca_o_otimo_para_cima(aux_W: float) -> None:
+    """Carga fixa e paga por tempo, entao mais bateria compra tempo: o otimo **sobe**.
+
+    Confere a raiz analitica contra maximizacao numerica da autonomia com auxiliar.
+    """
+    seco, area = 95.0, 0.266
+    analitico = optimal_battery_mass_with_auxiliary_kg(
+        dry_mass_kg=seco, disk_area_m2=area, auxiliary_power_W=aux_W
+    )
+    assert analitico > optimal_battery_mass_kg(seco)
+
+    def autonomia(bateria_kg: float) -> float:
+        energia = bateria_kg * 180.0 * 3600.0 * 0.85
+        potencia = electrical_hover_power_W((seco + bateria_kg) * G0, area) + aux_W
+        return energia / potencia
+
+    numerico = max((0.5 * k for k in range(1, 1400)), key=autonomia)
+    assert numerico == pytest.approx(analitico, rel=0.01)
+
+
+def test_otimo_ideal_e_referencia_analitica_nao_identidade_universal() -> None:
+    """A forma fechada supoe auxiliar nulo, sem teto de trim e sem aceleracao.
+
+    Este teste fixa a primeira das tres hipoteses em numero: com auxiliar de 5 kW o
+    otimo ja se afasta de ``2*m_seco`` de forma mensuravel. As outras duas aparecem em
+    ``test_mission_energy``, onde o teto de trim corta o otimo de 190 para 103 kg.
+    """
+    seco = 95.0
+    ideal = optimal_battery_mass_kg(seco)
+    com_carga = optimal_battery_mass_with_auxiliary_kg(
+        dry_mass_kg=seco, disk_area_m2=0.266, auxiliary_power_W=5000.0
+    )
+    assert com_carga / ideal > 1.04

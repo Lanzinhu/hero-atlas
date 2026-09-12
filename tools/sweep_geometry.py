@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Experimento 1: quais geometrias congeladas admitem trim e preservam autoridade.
 
 Roda com::
@@ -36,8 +35,8 @@ from hero_atlas.airframe.geometry import (  # noqa: E402
 )
 from hero_atlas.analysis.authority import (  # noqa: E402
     analyse_authority,
-    lateral_cg_authority,
     cg_window,
+    lateral_cg_authority,
     single_failure_survey,
 )
 from hero_atlas.analysis.trim import (  # noqa: E402

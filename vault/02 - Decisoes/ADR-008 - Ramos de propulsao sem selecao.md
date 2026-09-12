@@ -81,6 +81,17 @@ eliminação foi **retirada**, e o ramo agora depende de um número mensurável:
 por quilograma do conjunto gerador mais eletrônica, contra uma exigência de 103 a
 235 kW de barramento conforme a massa bruta.
 
+## Massa seca é específica da família
+
+⚠ Toda comparação feita até aqui fixa a **mesma massa seca** para todas as famílias.
+Isso torna a comparação controlada e é também o seu limite: compara **armazenamento de
+energia sob geometria fixa**, não arquiteturas completas.
+
+Motores, inversores e gerenciamento de bateria de um lado; unidade de controle,
+tanques e linhas do outro. Nenhum entrou no livro de massa. Está registrado como
+incógnita bloqueante nos quatro ramos, e é o que impede chamar o Experimento 2 de
+comparação arquitetural.
+
 ## Consequência
 
 Nenhum relatório do projeto pode dizer "combustão aprovada" ou "elétrico descartado"

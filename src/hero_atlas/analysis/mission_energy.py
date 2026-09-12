@@ -24,6 +24,28 @@ qualquer". E: com a **mesma massa embarcada de energia**, a mesma geometria, a m
 massa seca, o mesmo piloto, a mesma reserva e a mesma missao, quanto tempo cada
 arquitetura entrega. Ver :func:`compare_storage`.
 
+⚠ **E isso compara armazenamento de energia, nao arquiteturas completas.** Manter a
+massa seca igual entre as familias e o que torna a comparacao controlada, e e tambem
+o que a limita: na pratica as massas secas **nao** sao iguais.
+
+============================  ==========================================================
+familia                       massa que so ela carrega
+============================  ==========================================================
+eletrico distribuido          rotores, motores, inversores, barramento, gerenciamento de
+                              bateria, cabeamento de alta corrente, estrutura de suporte
+turbina direta                microturbinas, unidade de controle, tanques, linhas,
+                              bombas, protecao termica, estrutura
+hibrido serie                 gerador, eletronica de potencia, buffer, motores, cabos,
+                              tanque, controle termico
+turbina com buffer            turbina, buffer, eletronica, atuadores auxiliares,
+                              estrutura e protecao termica
+============================  ==========================================================
+
+O titulo tecnicamente exato do experimento e **"comparacao de energia armazenada sob
+massa seca e geometria fixadas"**, e nao "comparacao entre arquitetura eletrica e
+arquitetura a combustao". A diferenca de massa seca por familia esta registrada como
+incognita bloqueante em :mod:`hero_atlas.propulsion_family`.
+
 Duas assimetrias fisicas que o modelo precisa capturar, e captura:
 
 1. **Eletrico**: a massa nao cai. Cada quilo de bateria e carregado do inicio ao fim,
@@ -145,6 +167,16 @@ class MissionProfile:
                 f"missao com mais de uma fase aberta: {abertas}. Duas fases 'ate a "
                 "reserva' nao tem ordem definida de termino."
             )
+        if abertas and not self.phases[-1].open_ended:
+            primeira_aberta = next(i for i, f in enumerate(self.phases) if f.open_ended)
+            posteriores = [f.name for f in self.phases[primeira_aberta + 1 :]]
+            raise ValueError(
+                f"fases {posteriores} vem depois da fase aberta {abertas[0]!r} e "
+                "**nunca executam**: a fase aberta so termina quando a reserva acaba, "
+                "e nesse instante a missao encerra. Declarar uma descida ali produz "
+                "um perfil que parece operacional e nao e. Ou a fase aberta e a "
+                "ultima, ou toda fase tem duracao."
+            )
 
 
 REFERENCE_HOVER_MISSION = MissionProfile(
@@ -152,11 +184,23 @@ REFERENCE_HOVER_MISSION = MissionProfile(
         MissionPhase("arranque_e_saida_do_chao", duration_s=3.0, vertical_acceleration_m_s2=0.5),
         MissionPhase("subida", duration_s=10.0, vertical_speed_m_s=1.0),
         MissionPhase("pairado", duration_s=None),
-        MissionPhase("descida", duration_s=10.0, vertical_speed_m_s=-0.5),
     ),
     reserve_fraction=0.20,
 )
-"""Missao de referencia. ⚠ Valores **declarados**, nao derivados de requisito real."""
+"""Missao de referencia. ⚠ Valores **declarados**, nao derivados de requisito real.
+
+⚠ **Nao ha fase de descida, e a ausencia e deliberada.** Uma versao anterior declarava
+descida depois do pairado aberto, e essa fase **nunca executava**: o pairado aberto so
+termina quando a reserva acaba, e nesse instante a missao encerra. O perfil parecia
+operacional e nao era.
+
+A autonomia que este perfil mede e, portanto:
+
+    tempo de pairado ate a reserva, **sem** reserva separada de descida ou retorno.
+
+Quem quiser uma missao com descida garantida tem duas rotas: dar duracao fixa ao
+pairado, ou aumentar ``reserve_fraction`` ate cobrir a energia da descida declarada.
+A segunda rota continua sendo uma escolha do analista, nao um calculo deste modulo."""
 
 
 # ---------------------------------------------------------------------------
@@ -395,7 +439,20 @@ class MissionEnergyResult:
     energy_remaining_J: float
     peak_power_W: float | None
     peak_fuel_flow_kg_s: float | None
-    minimum_thrust_margin_ratio: float
+    min_upper_thrust_headroom_ratio: float
+    """Menor folga **superior** de empuxo entre os propulsores: ``min_i (1 - T_i/T_i_max)``.
+
+    ⚠ **Isto nao e a margem estatica de wrench do projeto.** Mede so a distancia ao
+    teto do propulsor mais carregado, e ignora ``T_min``, as direcoes possiveis de
+    variacao, a geometria da matriz de alocacao, a assimetria de autoridade, o wrench
+    exigido e a distancia a fronteira do conjunto atingivel. Tambem nao diz nada
+    sobre autoridade **dinamica**, que depende de rampa e atraso.
+
+    Zero aqui significa que pelo menos um propulsor nao pode subir empuxo, o que e
+    condicao necessaria de perda de autoridade naquela direcao, nunca suficiente para
+    concluir sobre controlabilidade. A margem de wrench continua sendo outra grandeza,
+    com normalizacao propria, em :mod:`hero_atlas.analysis.authority`.
+    """
     initial_gross_kg: float
     final_gross_kg: float
     model_status: ModelStatus = PROPULSAO_INSTALADA_HOJE
@@ -410,8 +467,13 @@ class MissionEnergyResult:
         return self.mission_endurance_s / 60.0
 
 
-def _margin_ratio(thrusts_N: NDArray[np.float64], geometry: PropulsionGeometry | None) -> float:
-    """Fracao do teto que sobra no propulsor mais carregado. Um menos isso e a folga."""
+def _upper_headroom_ratio(
+    thrusts_N: NDArray[np.float64], geometry: PropulsionGeometry | None
+) -> float:
+    """Folga superior do propulsor mais carregado: ``min_i (1 - T_i/T_i_max)``.
+
+    Ver o atributo homonimo de :class:`MissionEnergyResult` para o que isto **nao**
+    mede."""
     if geometry is None or thrusts_N.size == 0:
         return math.nan
     tetos = np.array([n.thrust_max_N for n in geometry.available], dtype=np.float64)
@@ -527,7 +589,7 @@ def evaluate_mission_energy(
                 gasto_passo = delta
                 pico_potencia = k1 if pico_potencia is None else max(pico_potencia, k1)
 
-            margem_minima = min(margem_minima, _margin_ratio(pedido.thrusts_N, geometry))
+            margem_minima = min(margem_minima, _upper_headroom_ratio(pedido.thrusts_N, geometry))
 
             if eh_decolagem:
                 if consome_massa:
@@ -580,7 +642,7 @@ def evaluate_mission_energy(
         energy_remaining_J=restante_energia,
         peak_power_W=pico_potencia,
         peak_fuel_flow_kg_s=pico_fluxo,
-        minimum_thrust_margin_ratio=(math.nan if margem_minima is math.inf else margem_minima),
+        min_upper_thrust_headroom_ratio=(math.nan if margem_minima is math.inf else margem_minima),
         initial_gross_kg=bruto_inicial,
         final_gross_kg=dry_mass_kg + restante_massa,
         phase_durations_s=tuple(duracoes),

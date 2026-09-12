@@ -53,6 +53,64 @@ proibicao de atraso menor que o passo. Limite de comando da ECU separado do limi
 exploracao de R em tres fases. Parametros humanos sob o mesmo regime de procedencia. Prazo por marco
 com ordem de corte.
 
+## Rodadas 17 e 18: energia por missao
+
+**Rodada 17.** O projeto escreveu "recomendacao: combustao" com zero dinamica implementada. Tres
+afirmacoes cairam: "autonomia eletrica e funcao da area, nao da bateria" era falsa e contradizia a
+assinatura da propria funcao; "16,7 kgf por bocal" era massa dividida por sete; e a eliminacao do
+hibrido serie confundia energia com potencia. Resposta estrutural em
+[[ADR-008 - Ramos de propulsao sem selecao]].
+
+Um bug apareceu por confronto com forma fechada: a massa da bateria nao entrava na massa bruta,
+inflando a autonomia eletrica em 37 por cento. **O erro favorecia exatamente a arquitetura que o
+projeto estava prestes a descartar.**
+
+**Rodada 18.** Seis pontos, tres deles defeito de contrato e nao de redacao:
+
+1. A missao de referencia tinha **fase morta**: descida depois do pairado aberto, que nunca
+   executava. `MissionProfile` agora recusa.
+2. `minimum_thrust_margin_ratio` **nao era margem de wrench**. Renomeado para
+   `min_upper_thrust_headroom_ratio`, com o que **nao** mede no docstring.
+3. "Bateria otima = 2 x massa seca" tinha hipoteses nao declaradas. Com carga auxiliar o otimo
+   sobe, e agora existe forma para isso.
+4. Massa seca e **especifica da familia**: a comparacao e de armazenamento de energia, nao de
+   arquiteturas. Registrado como incognita bloqueante nos quatro ramos.
+5. A potencia de barramento usava caminho escalar, e foi refeita pelo caminho do trim.
+6. `tools/` estava fora do portao de lint, e e justamente onde nascem os numeros de relatorio.
+
+E uma falha de transparencia, apontada pelo Alan: as tabelas viviam so no terminal. As saidas dos
+experimentos agora sao versionadas em `docs/resultados/`, geradas por `tools/refresh_results.py`.
+
+## Rodadas 17 e 18: energia por missao
+
+**Rodada 17.** O projeto escreveu "recomendacao: combustao" com zero dinamica implementada. Tres
+afirmacoes cairam: "autonomia eletrica e funcao da area, nao da bateria" era falsa e contradizia a
+assinatura da propria funcao; "16,7 kgf por bocal" era massa dividida por sete, e o solver mostra
+12,1 a 35,0 kgf com um par no teto; e a eliminacao do hibrido serie confundia energia com
+potencia. Resposta estrutural em [[ADR-008 - Ramos de propulsao sem selecao]].
+
+Um bug apareceu por confronto com forma fechada: a massa da bateria nao entrava na massa bruta,
+inflando a autonomia eletrica em 37 por cento. **O erro favorecia exatamente a arquitetura que o
+projeto estava prestes a descartar.**
+
+**Rodada 18.** Seis pontos, tres deles defeito de contrato e nao de redacao:
+
+1. A missao de referencia tinha **fase morta**: descida depois do pairado aberto, que nunca
+   executava. `MissionProfile` agora recusa, com a mensagem explicando o porque.
+2. `minimum_thrust_margin_ratio` **nao era margem de wrench**. Renomeado para
+   `min_upper_thrust_headroom_ratio`, com o que **nao** mede no docstring.
+3. "Bateria otima = 2 x massa seca" tinha hipoteses nao declaradas. Com carga auxiliar o otimo
+   sobe, e agora existe forma para isso, conferida contra maximizacao numerica.
+4. Massa seca e **especifica da familia**: a comparacao e de armazenamento de energia sob
+   geometria fixa, nao de arquiteturas. Incognita bloqueante nos quatro ramos.
+5. A potencia de barramento usava caminho escalar, e foi refeita pelo caminho do trim. A forma
+   escalar subestimava em ate 12 por cento.
+6. `tools/` estava fora do portao de lint, e e justamente onde nascem os numeros de relatorio.
+
+E uma falha de transparencia, apontada pelo Alan: as tabelas viviam so no terminal, entao a
+revisao externa tinha que confiar na transcricao. As saidas dos experimentos agora sao
+versionadas em `docs/resultados/`, geradas por `tools/refresh_results.py`.
+
 ## A licao que se repete
 
 Sete vezes o mesmo padrao: **uma frase intuitiva que, implementada literalmente, introduz erro

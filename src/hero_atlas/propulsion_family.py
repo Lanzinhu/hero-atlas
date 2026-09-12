@@ -143,6 +143,9 @@ TURBINA_COMPACTA = PropulsionFamily(
         "taxa maxima de variacao de empuxo sob comando pequeno",
         "perda de instalacao e interacao em arranjo vestivel: sem dado publicado",
         "consumo especifico em carga parcial",
+        "massa seca propria da familia: as comparacoes feitas ate aqui fixam a "
+        "mesma massa seca para todas, o que compara armazenamento de energia sob "
+        "geometria fixa, e nao arquitetura completa",
     ),
 )
 
@@ -168,6 +171,9 @@ HIBRIDO_TURBINA_COM_BUFFER = PropulsionFamily(
         "penalidade de massa de gerador, eletronica de potencia, cabos e termico",
         "acoplamento aerodinamico entre jato de turbina e rotor proximo",
         "contingencia: perda de gerador, de buffer, de motor ou de propulsor",
+        "massa seca propria da familia: as comparacoes feitas ate aqui fixam a "
+        "mesma massa seca para todas, o que compara armazenamento de energia sob "
+        "geometria fixa, e nao arquitetura completa",
     ),
 )
 
@@ -184,6 +190,9 @@ ELETRICO_DISTRIBUIDO = PropulsionFamily(
     blocking_unknowns=(
         "energia especifica de pack de alta descarga acima de 180 Wh/kg muda a conta",
         "figura de merito real de rotor pequeno e carenado junto ao corpo",
+        "massa seca propria da familia: as comparacoes feitas ate aqui fixam a "
+        "mesma massa seca para todas, o que compara armazenamento de energia sob "
+        "geometria fixa, e nao arquitetura completa",
     ),
     eliminated_by=(
         "teto de autonomia por saturacao de massa, nao por geometria de rotor. Com 95 kg "
@@ -192,7 +201,12 @@ ELETRICO_DISTRIBUIDO = PropulsionFamily(
         "aceleracao na saida do chao corta o teto para 103,0 kg. Preso a isso, o melhor "
         "caso eletrico e 2,98 min de pairado, que a combustao alcanca com 12,0 kg de "
         "combustivel: fator de 8,5 em massa embarcada. O ramo reabre se o alvo de missao "
-        "cair abaixo de 3 min, se a area de disco crescer, ou se o empuxo instalado subir"
+        "cair abaixo de 3 min, se a area de disco crescer, ou se o empuxo instalado "
+        "subir. ⚠ A comparacao que produziu estes numeros fixa a mesma massa seca "
+        "nas duas familias, entao compara armazenamento de energia sob geometria "
+        "fixa, e nao arquiteturas completas: motores, inversores e gerenciamento "
+        "de bateria de um lado, unidade de controle, tanques e linhas do outro, "
+        "ainda nao entraram no livro de massa"
     ),
 )
 
@@ -211,6 +225,9 @@ HIBRIDO_SERIE = PropulsionFamily(
         "gestao termica de um barramento dessa potencia junto ao corpo",
         "rendimento composto da cadeia geracao, eletronica, motor e helice",
         "modos de falha novos: gerador, conversor, cabo, barramento",
+        "massa seca propria da familia: as comparacoes feitas ate aqui fixam a "
+        "mesma massa seca para todas, o que compara armazenamento de energia sob "
+        "geometria fixa, e nao arquitetura completa",
     ),
 )
 """⚠ **Eliminacao retirada.** Uma versao anterior deste ramo estava marcada como
