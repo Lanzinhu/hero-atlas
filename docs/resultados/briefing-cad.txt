@@ -1,0 +1,123 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+BRIEFING DE CAD CONCEITUAL
+familia A, sete bocais. O que modelar, e o que devolver ao simulador.
+
+1. REFERENCIAL, e ele precisa ser o mesmo dos dois lados
+   origem: ponto de referencia estrutural fixo no corpo, ADR-001.
+           NAO e o centro de massa, que migra com pose e combustivel.
+   +x  para a FRENTE do piloto
+   +y  para a DIREITA do piloto
+   +z  para BAIXO
+
+   ⚠ O eixo z para baixo e convencao aeronautica e contraria a de quase todo
+     CAD, que usa z para cima. Modelar com z para cima e depois espelhar na
+     exportacao e a fonte de erro de sinal mais provavel deste passo.
+
+2. POSICAO E DIRECAO DE CADA BOCAL, em milimetros
+   A direcao e para onde a FORCA aponta, ou seja o contrario do jato.
+
+   bocal               x        y        z |  inclin. lateral  inclin. long.
+                      mm       mm       mm |            graus          graus
+   -------------------------------------------------------------------------
+   par0_esq        320.0   -300.0   -150.0 |             15.0           14.5
+   par0_dir        320.0    300.0   -150.0 |             15.0           14.5
+   par1_esq        200.0   -400.0   -260.0 |             30.0            0.0
+   par1_dir        200.0    400.0   -260.0 |             30.0            0.0
+   par2_esq         20.0   -350.0   -370.0 |             45.0          -14.5
+   par2_dir         20.0    350.0   -370.0 |             45.0          -14.5
+   dorsal         -150.0      0.0    100.0 |              0.0            0.0
+
+   Vetores de direcao normalizados, para conferencia:
+   par0_esq     [+0.2506, -0.2506, -0.9351]
+   par0_dir     [+0.2506, +0.2506, -0.9351]
+   par1_esq     [+0.0000, -0.5000, -0.8660]
+   par1_dir     [+0.0000, +0.5000, -0.8660]
+   par2_esq     [-0.2506, -0.6846, -0.6846]
+   par2_dir     [-0.2506, +0.6846, -0.6846]
+   dorsal       [+0.0000, +0.0000, -1.0000]
+
+3. A PERGUNTA QUE SO O CAD RESPONDE: isto cabe num corpo humano?
+   meia envergadura exigida: ['0', '300', '350', '400'] mm
+   turbina assumida: 120 mm de diametro por 299 mm
+
+   Verificar, com o corpo em pose de pairado:
+     - o par mais externo fica a 400 mm do plano medio: e alcance de braco ou de estrutura?
+     - tres turbinas por lado, escalonadas em altura de 150 a 370 mm abaixo da origem
+     - o jato de um bocal atinge a estrutura ou a perna do bocal de baixo?
+     - o bocal dorsal a 100 mm ACIMA da origem passa por cima do ombro ou pelas costas?
+     - sobra caminho para linha de combustivel, cabo e exaustao sem cruzar o corpo
+
+   ⚠ Se nao couber, a geometria morre e o funil precisa rodar de novo com
+     restricao de envelope. Isso seria resultado, nao contratempo.
+
+4. ORCAMENTO DE MASSA A FECHAR, hoje estimado em bloco
+   componente                              alvo      estado hoje
+   piloto com protecao                   80.0 kg         estimado
+   7 turbinas de 2.20 kg                 15.4 kg      de catalogo
+   estrutura, tanques, linhas, aviônica    12.0 kg ESTIMADO EM BLOCO
+   combustivel                           20.0 kg escolha de missao
+   TOTAL                                127.4 kg
+
+   ⚠ Os 12 kg de estrutura sao o numero mais fraco do projeto inteiro. Eles
+     precisam virar soma de pecas: berco de turbina, braco, cinto, tanque,
+     bomba, valvula, bateria de aviônica, cabo, protecao termica.
+
+   O CAD REPROVA a massa se a soma passar de:
+     208.2 kg  (85 por cento do empuxo instalado)
+     folga atual: 80.8 kg
+
+5. O QUE O CAD DEVOLVE AO SIMULADOR, por componente
+   A interface ja existe: hero_atlas.airframe.mass_properties.MassComponent
+
+     mass_kg                          massa da peca
+     center_of_mass_body_m            centro da peca, no referencial acima
+     inertia_about_own_cg_kg_m2       tensor 3x3 sobre o centro DA PECA
+     orientation_body_from_component  rotacao da peca para o corpo
+
+   ⚠ O tensor precisa ser sobre o centro DA PROPRIA PECA, nao sobre a origem.
+     O agregador faz rotacao e eixos paralelos; se a peca ja vier transladada,
+     a translacao entra duas vezes e a inercia sai maior, sem erro visivel.
+
+   O agregador entao calcula, e isso substitui as estimativas de hoje:
+     massa total          hoje 115.0 kg, estimada
+     centro de massa      hoje [157.5, 0.0, 0.0] mm, ESCOLHIDO
+     tensor de inercia    hoje diag[32.2, 32.2, 2.3], cilindro equivalente
+
+   ⚠ O centro de massa de hoje nao e estimativa: e o MEIO DA JANELA VIAVEL.
+     Foi escolhido para o trim fechar, nao medido. O CAD pode devolver um
+     centro fora dessa janela, e ai a geometria precisa mudar.
+     Janela longitudinal viavel hoje: 105 a 210 mm.
+
+6. REQUISITOS ESTRUTURAIS JA LEVANTADOS
+   carga por berco, no TETO do propulsor:   343 N
+   maior momento de fixacao, em flexao:     178 N.m
+   empuxo no trim, por bocal:               189 N
+
+   ⚠ Dimensionar pelo TETO, nao pelo trim. A alocacao usa o teto em
+     transitorio, e o piloto esta do outro lado da alavanca.
+
+   Bandas de excitacao a evitar em modo estrutural, com a turbina assumida:
+     eixo:            550 a 1867 Hz
+     2o harmonico:   1100 a 3733 Hz
+     tique de controle:      100 Hz
+
+   ⚠ A faixa do eixo e varrida continuamente em operacao. Nao ha 'passar
+     rapido pela ressonancia' como em partida de motor.
+
+7. ORDEM SUGERIDA DE MODELAGEM
+   1. manequim do piloto em pose de pairado, so para envelope e massa
+   2. sete turbinas como cilindros com a massa real de catalogo
+   3. posicionar pelas coordenadas da secao 2 e CONFERIR SE CABE
+   4. bracos e bercos, so entao, com secao que aguente o momento da secao 6
+   5. tanque, linhas e aviônica, para fechar os 12 kg
+   6. exportar propriedades por componente e alimentar o agregador
+   7. rodar o funil de novo com a massa e inercia reais
+
+   ⚠ O passo 3 e um portao. Se nao couber, parar ali e voltar ao funil, em
+     vez de continuar modelando uma geometria impossivel.

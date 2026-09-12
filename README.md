@@ -193,6 +193,7 @@ são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
 | `experimento-4-atraso.txt` | fronteira de atraso e rampa, e as duas margens de autoridade medidas |
 | `experimento-5-turbinas.txt` | três microturbinas de catálogo contra a especificação gerada |
 | `experimento-6-estrutura.txt` | espectro de excitação, cargas de fixação e sensibilidade à inércia |
+| `briefing-cad.txt` | o que modelar em CAD, com coordenadas em milímetros, e o que devolver ao simulador |
 
 ```bash
 ./.venv/Scripts/python.exe tools/refresh_results.py

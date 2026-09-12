@@ -25,6 +25,7 @@ import sys
 sys.path.insert(0, "src")
 sys.path.insert(0, "tools")
 
+import cad_brief  # noqa: E402
 import compare_energy_architectures  # noqa: E402
 import delay_sweep  # noqa: E402
 import dump_geometry_detail  # noqa: E402
@@ -52,6 +53,7 @@ EXPERIMENTOS = (
     ("experimento-4-atraso.txt", delay_sweep.main),
     ("experimento-5-turbinas.txt", turbine_match.main),
     ("experimento-6-estrutura.txt", structure_screen.main),
+    ("briefing-cad.txt", cad_brief.main),
 )
 
 
