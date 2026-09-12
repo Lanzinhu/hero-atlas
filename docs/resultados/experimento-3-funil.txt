@@ -1,0 +1,74 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+EXPERIMENTO 3: FUNIL DE ARQUITETURAS
+seis familias parametricas, oito filtros estaticos, do mais barato ao mais caro
+
+CRITERIOS DECLARADOS DA CAMPANHA (mudar um muda quem sobrevive)
+  posto minimo da alocacao:        5 de 6
+  rolagem pura exigida:            sim
+  aceleracao de saida do chao:     0.50 m/s2
+  desvio lateral de centro de massa: 2.0 cm
+  folga superior de empuxo:        10%
+  autonomia minima de pairado:     3.0 min
+
+MASSAS E GEOMETRIA DECLARADAS POR FAMILIA
+   familia                            seco  energia  bruto   n   T inst
+                                        kg       kg     kg          kgf
+-----------------------------------------------------------------------
+A  bocais vetorizados compactos         95       20    115   7      245
+B  rotores distribuidos compactos      108       40    148   4      280
+C  rotores em estrutura lateral        122       55    177   6      330
+D  estrutura larga, quatro rotores grandes    145       90    235   4      360
+E  turbina com buffer eletrico         104       20    124   7      245
+F  hibrido serie                       170       25    195   6      330
+
+O FUNIL: ok = passou, X = morreu aqui, ponto = nem foi avaliado
+   familia                           empuxo   posto    trim  decola  cg lat   folga energia   falha
+---------------------------------------------------------------------------------------------------
+A  bocais vetorizados compactos          ok      ok      ok      ok      ok      ok      ok      ok
+B  rotores distribuidos compactos        ok       X       .       .       .       .       .       .
+C  rotores em estrutura lateral          ok      ok      ok      ok       X       .       .       .
+D  estrutura larga, quatro rotores grandes      ok       X       .       .       .       .       .       .
+E  turbina com buffer eletrico           ok      ok      ok      ok      ok      ok      ok      ok
+F  hibrido serie                         ok      ok      ok      ok       X       .       .       .
+
+ONDE CADA UMA MORREU, E COM QUE NUMERO
+  A: SOBREVIVEU aos oito filtros
+         cg lat: tolera 11.2 cm de desvio lateral, exigido 2.0 cm
+          folga: folga superior de 44.1%, exigida 10%
+        energia: 4.85 min de pairado, exigido 3.0 min
+          falha: 0 de 7 perdas unicas ainda admitem trim
+  B: morreu em 'posto' -> posto 4/6, rolagem pura nao
+  C: morreu em 'cg lat' -> tolera 0.4 cm de desvio lateral, exigido 2.0 cm
+  D: morreu em 'posto' -> posto 4/6, rolagem pura nao
+  E: SOBREVIVEU aos oito filtros
+         cg lat: tolera 9.2 cm de desvio lateral, exigido 2.0 cm
+          folga: folga superior de 39.4%, exigida 10%
+        energia: 4.42 min de pairado, exigido 3.0 min
+          falha: 0 de 7 perdas unicas ainda admitem trim
+  F: morreu em 'cg lat' -> tolera 0.3 cm de desvio lateral, exigido 2.0 cm
+
+MORTALIDADE POR FILTRO
+     posto: 2
+    cg lat: 2
+
+CANDIDATAS QUE MERECEM DINAMICA: 2 de 6
+  A - bocais vetorizados compactos
+      fora do modelo: atraso de degrau pequeno perto do trim
+      fora do modelo: perda de instalacao e interacao em arranjo vestivel
+      fora do modelo: consumo especifico em carga parcial
+  E - turbina com buffer eletrico
+      fora do modelo: o canal eletrico rapido NAO esta no modelo: entra como massa, nao como autoridade, entao esta familia so pode ser comparada com A em energia
+      fora do modelo: quanta autoridade rapida seria necessaria depende do atraso da turbina
+
+VEREDITO DE SELECAO DE TECNOLOGIA: INDETERMINATE
+  3 ramos abertos (turbina_compacta, hibrido_turbina_com_buffer, hibrido_serie) e 16 incognitas bloqueantes em aberto; a evidencia de hoje restringe arquitetura, nao seleciona tecnologia
+
+⚠ Todos os oito filtros sao ESTATICOS. Nenhum ve atraso, rampa ou
+  estabilidade. Sobreviver aqui significa 'merece receber dinamica',
+  nunca 'funciona'.

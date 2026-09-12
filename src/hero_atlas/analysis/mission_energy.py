@@ -77,6 +77,7 @@ __all__ = [
     "MissionProfile",
     "BatteryStorage",
     "FuelStorage",
+    "GeneratorFuelStorage",
     "Storage",
     "ThrustDemand",
     "ScalarThrustDemand",
@@ -327,12 +328,110 @@ class FuelStorage:
     def consumes_mass(self) -> bool:
         return True
 
-    def mass_flow_kg_s(self, thrusts_N: NDArray[np.float64]) -> float:
-        """``mdot = TSFC * soma dos empuxos``. Linear, ao contrario do eletrico."""
+    def mass_flow_kg_s(
+        self,
+        thrusts_N: NDArray[np.float64],
+        density_kg_m3: float = RHO_SEA_LEVEL_ISA,
+    ) -> float:
+        """``mdot = TSFC * soma dos empuxos``. Linear, ao contrario do eletrico.
+
+        ``density_kg_m3`` entra so para a assinatura casar com
+        :class:`GeneratorFuelStorage`, onde o consumo depende de potencia e portanto
+        de densidade. Aqui o consumo especifico ja e um numero de ensaio e o modelo
+        nao o corrige por altitude: fazer isso exigiria a familia de curvas do deck,
+        que nao existe.
+        """
+        del density_kg_m3
         return self.tsfc_kg_per_N_s * float(np.sum(thrusts_N))
 
 
-Storage = BatteryStorage | FuelStorage
+@dataclass(frozen=True, slots=True)
+class GeneratorFuelStorage:
+    """Combustivel que alimenta um gerador, que alimenta rotores. Hibrido serie.
+
+    A diferenca em relacao a :class:`FuelStorage` e onde o combustivel entra. Ali o
+    consumo e proporcional ao **empuxo**, porque o bocal queima direto. Aqui o consumo
+    e proporcional a **potencia eletrica**, porque o que queima e o gerador::
+
+        P_eletrica = potencia induzida rotor a rotor / (FM * eta_motor * eta_inversor)
+        mdot       = P_eletrica / ( eta_cadeia * e_combustivel )
+
+    ⚠ E por isso que "resolve energia, nao area" era uma frase errada sobre este ramo.
+    A area de disco continua limitando a **potencia**, exatamente como no eletrico
+    puro, e o hibrido serie nao melhora isso em nada. O que ele ataca e outro teto: no
+    eletrico a autonomia satura porque bateria e massa carregada do inicio ao fim,
+    enquanto aqui a massa **cai** enquanto queima e a energia especifica e uma ordem de
+    grandeza maior.
+
+    Attributes:
+        chain_efficiency: rendimento composto de combustivel quimico ate energia
+            eletrica no barramento, ou seja gerador mais retificacao mais conversao.
+
+            ⚠ E o parametro que decide o ramo, junto da massa do conjunto, e **nao ha
+            dado arquivado**. Entra como sensibilidade, nunca como valor de projeto.
+    """
+
+    mass_kg: float
+    source: str
+    chain_efficiency: float
+    rotor_disk_area_m2: float
+    specific_energy_J_kg: float = JET_A_SPECIFIC_ENERGY_J_KG
+    figure_of_merit: float = FIGURE_OF_MERIT_DEFAULT
+    motor_efficiency: float = MOTOR_EFFICIENCY_DEFAULT
+    inverter_efficiency: float = 0.97
+    auxiliary_power_W: float = 150.0
+
+    def __post_init__(self) -> None:
+        if self.mass_kg <= 0.0:
+            raise ValueError("massa de combustivel precisa ser positiva")
+        if not self.source.strip():
+            raise ValueError("armazenamento sem procedencia declarada")
+        if self.rotor_disk_area_m2 <= 0.0:
+            raise ValueError("area de disco precisa ser positiva")
+        for nome in (
+            "chain_efficiency",
+            "figure_of_merit",
+            "motor_efficiency",
+            "inverter_efficiency",
+        ):
+            valor = getattr(self, nome)
+            if not 0.0 < valor <= 1.0:
+                raise ValueError(f"{nome} precisa estar em (0, 1]")
+
+    @property
+    def usable_energy_J(self) -> float:
+        """Energia **eletrica** entregavel, ja descontada a cadeia de conversao."""
+        return self.mass_kg * self.specific_energy_J_kg * self.chain_efficiency
+
+    @property
+    def embarked_energy_J(self) -> float:
+        """Energia quimica embarcada, antes da cadeia."""
+        return self.mass_kg * self.specific_energy_J_kg
+
+    def consumes_mass(self) -> bool:
+        return True
+
+    def power_W(self, thrusts_N: NDArray[np.float64], density_kg_m3: float) -> float:
+        """Potencia eletrica de barramento, somada rotor a rotor."""
+        area_por_rotor = self.rotor_disk_area_m2 / max(thrusts_N.size, 1)
+        induzida = float(
+            np.sum(np.power(np.maximum(thrusts_N, 0.0), 1.5))
+            / math.sqrt(2.0 * density_kg_m3 * area_por_rotor)
+        )
+        cadeia = self.figure_of_merit * self.motor_efficiency * self.inverter_efficiency
+        return induzida / cadeia + self.auxiliary_power_W
+
+    def mass_flow_kg_s(
+        self,
+        thrusts_N: NDArray[np.float64],
+        density_kg_m3: float = RHO_SEA_LEVEL_ISA,
+    ) -> float:
+        """Consumo de combustivel, proporcional a **potencia** e nao ao empuxo."""
+        potencia = self.power_W(thrusts_N, density_kg_m3)
+        return potencia / (self.chain_efficiency * self.specific_energy_J_kg)
+
+
+Storage = BatteryStorage | FuelStorage | GeneratorFuelStorage
 
 
 # ---------------------------------------------------------------------------
@@ -549,7 +648,7 @@ def evaluate_mission_energy(
         if not pedido.feasible:
             return math.nan, pedido
         if consome_massa:
-            return storage.mass_flow_kg_s(pedido.thrusts_N), pedido
+            return storage.mass_flow_kg_s(pedido.thrusts_N, density_kg_m3), pedido
         return storage.power_W(pedido.thrusts_N, density_kg_m3), pedido
 
     for fase in profile.phases:

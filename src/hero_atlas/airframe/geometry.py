@@ -54,6 +54,20 @@ class NozzleSpec:
             dura que mais corta o conjunto de wrenches atingiveis.
         thrust_max_N: limite superior.
         available: falso quando o propulsor esta indisponivel, para estudo de falha.
+        torque_per_thrust_m: torque de **reacao** em torno do proprio eixo, por
+            newton de empuxo, com sinal dado pelo sentido de giro. Tem dimensao de
+            comprimento, e vale ``Q/T``.
+
+            ⚠ **Zero para jato, nao zero para rotor, e a diferenca decide o posto.**
+            Um bocal nao produz torque apreciavel em torno do proprio eixo; um rotor
+            produz, e e dali que vem toda a autoridade de guinada de um multirrotor.
+            E por isso que quadricoptero alterna o sentido de giro dos rotores: com
+            todos girando igual, a linha de guinada da matriz de alocacao some.
+
+            Uma versao anterior deste modulo nao tinha este termo, e o resultado foi
+            concreto: quatro familias de rotor foram eliminadas do funil com a linha
+            ``Mz`` identicamente nula. Elas nao morreram de fisica, morreram de um
+            termo ausente. Ver :func:`allocation_matrix`.
     """
 
     name: str
@@ -62,6 +76,7 @@ class NozzleSpec:
     thrust_min_N: float
     thrust_max_N: float
     available: bool = True
+    torque_per_thrust_m: float = 0.0
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -78,16 +93,23 @@ class NozzleSpec:
             raise ValueError(
                 f"{self.name}: limites invalidos, min={self.thrust_min_N} max={self.thrust_max_N}"
             )
+        if not math.isfinite(self.torque_per_thrust_m):
+            raise ValueError(f"{self.name}: torque por empuxo precisa ser finito")
 
     def wrench_column(self, reference_point_body_m: NDArray[np.float64]) -> NDArray[np.float64]:
         """Coluna deste bocal na matriz de alocacao, sobre o ponto de referencia.
 
-            [ n_i ; (r_i - r_O) x n_i ]
+            [ n_i ; (r_i - r_O) x n_i + c_i * n_i ]
 
-        Seis componentes: forca e depois momento, ambos no referencial do corpo.
+        Seis componentes: forca e depois momento, ambos no referencial do corpo. O
+        termo ``c_i * n_i`` e o **torque de reacao** do propulsor em torno do proprio
+        eixo, nulo em jato e nao nulo em rotor. Ver ``torque_per_thrust_m``.
         """
         braco = self.position_body_m - reference_point_body_m
-        return np.concatenate([self.direction_body, np.cross(braco, self.direction_body)])
+        momento = np.cross(braco, self.direction_body)
+        if self.torque_per_thrust_m:
+            momento = momento + self.torque_per_thrust_m * self.direction_body
+        return np.concatenate([self.direction_body, momento])
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,10 +178,15 @@ class PropulsionGeometry:
 def allocation_matrix(geometry: PropulsionGeometry) -> NDArray[np.float64]:
     """Matriz de alocacao ``W``, de forma (6, N) sobre os bocais **disponiveis**.
 
-        W = [ n_1 ... n_N ; (r_1-r_O) x n_1 ... (r_N-r_O) x n_N ]
+        W = [ n_i ; (r_i - r_O) x n_i + c_i * n_i ]
 
     As tres primeiras linhas dao forca, as tres ultimas dao momento sobre o ponto de
     referencia. Posto, condicionamento e conjunto atingivel saem daqui.
+
+    ⚠ O termo ``c_i * n_i`` e o torque de **reacao** do propulsor, zero em jato e nao
+    zero em rotor. Sem ele, um anel plano de rotores tem a linha ``Mz`` identicamente
+    nula e perde posto por um motivo que nao existe na fisica, so no modelo. Foi
+    exatamente o que aconteceu na primeira rodada do funil de arquiteturas.
     """
     disponiveis = geometry.available
     if not disponiveis:

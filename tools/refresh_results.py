@@ -27,6 +27,7 @@ sys.path.insert(0, "tools")
 
 import compare_energy_architectures  # noqa: E402
 import dump_geometry_detail  # noqa: E402
+import funnel  # noqa: E402
 import sweep_geometry  # noqa: E402
 
 DESTINO = pathlib.Path("docs/resultados")
@@ -44,6 +45,7 @@ EXPERIMENTOS = (
     ("experimento-1-geometria.txt", sweep_geometry.main),
     ("experimento-2-energia.txt", compare_energy_architectures.main),
     ("geometria-detalhe.txt", dump_geometry_detail.main),
+    ("experimento-3-funil.txt", funnel.main),
 )
 
 
