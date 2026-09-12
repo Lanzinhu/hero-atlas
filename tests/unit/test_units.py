@@ -138,3 +138,34 @@ def test_taxa_normalizada_exige_a_referencia_no_argumento():
 
     with pytest.raises(ValueError, match="thrust_reference_N"):
         normalized_thrust_rate(900.0, 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# Tipo semantico: o que a dimensao nao consegue separar
+# --------------------------------------------------------------------------- #
+
+
+def test_hertz_e_taxa_normalizada_sao_ambos_reciproco_de_segundo():
+    """Analise dimensional pura NAO separa os dois. Por isso existe o tipo."""
+    from hero_atlas.units import kind_of
+
+    assert kind_of("Hz") == "frequency"
+    assert kind_of("1/s") == "normalized_thrust_rate"
+    assert kind_of("rad/s") == "angular_frequency"
+    assert kind_of("rpm") == "angular_frequency"
+
+
+def test_require_kind_recusa_frequencia_onde_se_espera_taxa_normalizada():
+    """O erro dimensionalmente correto, que e a categoria mais sorrateira."""
+    from hero_atlas.units import KindError, require_kind
+
+    require_kind("1/s", "normalized_thrust_rate")  # nao levanta
+
+    with pytest.raises(KindError, match="tipo semantico"):
+        require_kind("Hz", "normalized_thrust_rate")
+
+
+def test_kind_cai_na_dimensao_quando_nao_declarado():
+    from hero_atlas.units import kind_of
+
+    assert kind_of("kg") == dimension_of("kg") == "mass"

@@ -16,6 +16,7 @@ from typing import Final
 
 __all__ = [
     "DimensionError",
+    "KindError",
     "UnitError",
     "UnitSpec",
     "G0",
@@ -30,6 +31,8 @@ __all__ = [
     "from_si",
     "convert",
     "require_dimension",
+    "require_kind",
+    "kind_of",
     "normalized_thrust_rate",
     "si_unit_for",
     "known_units",
@@ -42,6 +45,14 @@ class UnitError(ValueError):
 
 class DimensionError(ValueError):
     """Unidade valida, dimensao errada para o campo."""
+
+
+class KindError(ValueError):
+    """Unidade e dimensao validas, tipo semantico errado para o campo.
+
+    O caso classico: hertz onde se espera taxa normalizada de empuxo. Ambos sao
+    ``s^-1``, entao analise dimensional nao pega.
+    """
 
 
 # --------------------------------------------------------------------------- #
@@ -74,14 +85,34 @@ P_SEA_LEVEL_ISA: Final[float] = 101325.0
 
 @dataclass(frozen=True, slots=True)
 class UnitSpec:
-    """Como converter uma unidade para SI.
+    """Como converter uma unidade para SI, e o que ela significa.
 
     ``si = valor * factor + offset``
+
+    ⚠ Duas camadas, deliberadamente separadas:
+
+    - ``dimension`` governa a **legalidade da conversao**. Duas unidades so se
+      convertem entre si quando compartilham dimensao.
+    - ``kind`` governa a **compatibilidade de campo**, que e semantica e nao
+      dimensional.
+
+    A distincao importa porque hertz, recproco de segundo normalizado e radiano
+    por segundo sao todos ``s^-1`` em analise dimensional pura. Recusar frequencia
+    de controlador onde se espera taxa normalizada de autoridade **nao pode** ser
+    feito por dimensao. E o erro dimensionalmente correto, que e a categoria mais
+    sorrateira.
+
+    Quando ``kind`` nao e dado, vale a propria dimensao.
     """
 
     dimension: str
     factor: float
     offset: float = 0.0
+    kind: str | None = None
+
+    @property
+    def quantity_kind(self) -> str:
+        return self.kind if self.kind is not None else self.dimension
 
 
 _MIN: Final[float] = 60.0
@@ -119,7 +150,7 @@ _UNITS: Final[dict[str, UnitSpec]] = {
     "kgf/s": UnitSpec("force_rate", KGF_TO_N),
     # taxa normalizada: derivada DECLARADA, nunca a grandeza fisica do deck.
     # Dimensao propria para nao ser confundida com frequencia.
-    "1/s": UnitSpec("normalized_rate", 1.0),
+    "1/s": UnitSpec("normalized_rate", 1.0, kind="normalized_thrust_rate"),
     # torque
     "N*m": UnitSpec("torque", 1.0),
     "N.m": UnitSpec("torque", 1.0),
@@ -131,9 +162,9 @@ _UNITS: Final[dict[str, UnitSpec]] = {
     "rad": UnitSpec("angle", 1.0),
     "deg": UnitSpec("angle", 0.017453292519943295),
     # velocidade angular
-    "rad/s": UnitSpec("angular_velocity", 1.0),
+    "rad/s": UnitSpec("angular_velocity", 1.0, kind="angular_frequency"),
     "deg/s": UnitSpec("angular_velocity", 0.017453292519943295),
-    "rpm": UnitSpec("angular_velocity", 0.10471975511965977),  # 2*pi/60
+    "rpm": UnitSpec("angular_velocity", 0.10471975511965977, kind="angular_frequency"),
     # aceleracao angular
     "rad/s^2": UnitSpec("angular_acceleration", 1.0),
     "deg/s^2": UnitSpec("angular_acceleration", 0.017453292519943295),
@@ -188,8 +219,8 @@ _UNITS: Final[dict[str, UnitSpec]] = {
     "kW": UnitSpec("power", 1e3),
     "hp": UnitSpec("power", 745.6998715822702),
     # frequencia
-    "Hz": UnitSpec("frequency", 1.0),
-    "kHz": UnitSpec("frequency", 1e3),
+    "Hz": UnitSpec("frequency", 1.0, kind="frequency"),
+    "kHz": UnitSpec("frequency", 1e3, kind="frequency"),
     # densidade energetica
     "Wh/kg": UnitSpec("specific_energy", _H),
     "J/kg": UnitSpec("specific_energy", 1.0),
@@ -294,6 +325,28 @@ def normalized_thrust_rate(rate_N_s: float, thrust_reference_N: float) -> float:
     if not thrust_reference_N > 0.0:
         raise ValueError(f"thrust_reference_N deve ser positivo, recebeu {thrust_reference_N!r}")
     return rate_N_s / thrust_reference_N
+
+
+def kind_of(unit: str) -> str:
+    """Tipo semantico da grandeza, por exemplo ``'normalized_thrust_rate'``.
+
+    Distinto de :func:`dimension_of`. Ver o docstring de :class:`UnitSpec`.
+    """
+    return _spec(unit).quantity_kind
+
+
+def require_kind(unit: str, expected: str) -> None:
+    """Falha se a unidade nao for do tipo semantico esperado.
+
+    E isto, e nao a dimensao, que impede hertz de entrar num campo que espera taxa
+    normalizada de empuxo. Os dois sao ``s^-1``.
+    """
+    actual = kind_of(unit)
+    if actual != expected:
+        raise KindError(
+            f"esperava grandeza do tipo {expected!r}, recebeu {unit!r} que e {actual!r}. "
+            "Dimensao pode coincidir; o tipo semantico e que governa o campo."
+        )
 
 
 def require_dimension(unit: str, expected: str) -> None:

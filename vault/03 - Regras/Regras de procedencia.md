@@ -76,3 +76,35 @@ Ver [[R-04 - Resultado humano e condicional]].
 ## Ligacoes
 
 [[Nivel de evidencia]] · [[Estado da arte - trajes de voo]] · [[Regras de unidades]]
+
+## ⚠ Incerteza ausente e inconclusiva, nao aprovada
+
+Uma versao anterior fazia incerteza nao declarada devolver **infinito**, de modo que qualquer
+divergencia passasse no criterio de aceitacao. Matematicamente consistente, epistemicamente
+invertido: **a falta de incerteza tornava o dado irrefutavel por tolerancia infinita.**
+
+Isso contradiz a regra central do projeto. Numero sem procedencia e ficcao, nao verdade
+inquestionavel.
+
+Tres coisas que precisam ficar separadas:
+
+| Situacao | O que e |
+|---|---|
+| Comparacao inconclusiva | a incerteza nao e conhecida |
+| Criterio satisfeito | so pode ser emitido com comparacao feita |
+| Elegivel como teste de regressao | so com comparacao conclusiva |
+
+```
+aceita(a, b) = indeterminado            se falta incerteza necessaria
+             = |a - b| <= U_a + U_b     caso contrario
+```
+
+```yaml
+acceptance_result:
+  status: indeterminate
+  reason: uncertainty_missing
+  numeric_comparison_performed: false
+  eligible_for_regression: false
+```
+
+Implementado em `AcceptanceResult`. Ver [[Violado nao e indeterminado]].

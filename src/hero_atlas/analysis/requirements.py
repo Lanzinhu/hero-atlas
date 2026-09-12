@@ -32,6 +32,7 @@ from typing import Any
 
 from ..model_status import ModelStatus, assert_stamped
 from ..units import dimension_of
+from ..verdict import Verdict
 
 __all__ = [
     "Relation",
@@ -51,23 +52,6 @@ class Relation(StrEnum):
     @property
     def symbol(self) -> str:
         return "<=" if self is Relation.AT_MOST else ">="
-
-
-class Verdict(StrEnum):
-    """Tres valores, porque dois escondem a diferenca que mais importa.
-
-    ``VIOLATED`` e o modelo dizendo **nao**: o candidato existe e fura o limite.
-    ``INDETERMINATE`` e o modelo dizendo que **nao da para concluir**: falta o
-    parametro, entao a satisfacao nao e demonstravel sob aquele candidato.
-
-    Fundir os dois num booleano transforma lacuna de evidencia em veredito
-    negativo, que e o espelho exato do erro que o carimbo de estado do modelo
-    bloqueia na outra direcao. A distincao **precisa sobreviver ate o relatorio**.
-    """
-
-    SATISFIED = "satisfied"
-    VIOLATED = "violated"
-    INDETERMINATE = "indeterminate"
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,6 +242,24 @@ class RegionVerdict:
         de parametro.
         """
         return not self.indeterminate
+
+    @property
+    def is_refuted(self) -> bool:
+        """Se ha condicao **furada**. Aqui o modelo esta afirmando falha.
+
+        Diferente de :attr:`is_satisfied` ser falso, que tambem acontece por falta
+        de parametro.
+        """
+        return bool(self.violated)
+
+    @property
+    def is_rejected(self) -> bool:
+        """Se o candidato deve ser bloqueado operacionalmente.
+
+        Verdadeiro para violado **e** para indeterminado, porque nao demonstrado nao
+        e aprovado. A rejeicao pode tratar os dois igual; o dado e o relatorio, nao.
+        """
+        return not self.is_satisfied
 
     @property
     def verdict(self) -> Verdict:

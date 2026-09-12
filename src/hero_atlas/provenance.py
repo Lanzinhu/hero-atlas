@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import pathlib
+from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 from typing import Literal
@@ -25,6 +26,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .units import dimension_of, to_si
+from .verdict import Verdict
 
 __all__ = [
     "SourceType",
@@ -35,6 +37,7 @@ __all__ = [
     "TracedValue",
     "sha256_of_file",
     "within_combined_uncertainty",
+    "AcceptanceResult",
 ]
 
 
@@ -108,12 +111,24 @@ class Uncertainty(BaseModel):
             dimension_of(self.unit)  # levanta UnitError se desconhecida
         return self
 
-    def half_width(self, nominal: float) -> float:
-        """Meia largura da faixa, para o criterio de incerteza somada.
+    @property
+    def is_known(self) -> bool:
+        """Se ha incerteza declarada.
 
-        Para ``normal`` usa dois desvios padrao. Para ``unknown`` devolve ``inf``,
-        de modo que qualquer comparacao passe: um numero sem incerteza declarada
-        nao pode reprovar nada.
+        Quando falso, nenhuma comparacao numerica pode ser feita. **Nao** e o mesmo
+        que tolerancia infinita: ver :class:`AcceptanceResult`.
+        """
+        return self.type != "unknown"
+
+    def half_width(self, nominal: float) -> float | None:
+        """Meia largura da faixa, ou ``None`` quando a incerteza nao foi declarada.
+
+        ⚠ Antes esta funcao devolvia infinito para o caso desconhecido, o que fazia
+        qualquer divergencia passar no criterio de aceitacao. Isso invertia a regra
+        central do projeto: um numero **sem** procedencia virava irrefutavel por
+        tolerancia infinita, em vez de inconclusivo.
+
+        Para ``normal`` usa dois desvios padrao.
         """
         if self.type in ("bounded", "uniform"):
             assert self.lower is not None and self.upper is not None
@@ -121,7 +136,7 @@ class Uncertainty(BaseModel):
         if self.type == "normal":
             assert self.std is not None
             return 2.0 * self.std
-        return float("inf")
+        return None
 
 
 class Provenance(BaseModel):
@@ -192,36 +207,97 @@ class TracedValue(BaseModel):
         return to_si(self.value, self.unit)
 
     @property
-    def half_width(self) -> float:
-        """Meia largura da incerteza, na mesma unidade do valor."""
+    def half_width(self) -> float | None:
+        """Meia largura da incerteza, ou ``None`` se nao foi declarada."""
         return self.provenance.uncertainty.half_width(self.value)
 
-    def agrees_with(self, model_value: float, model_half_width: float = 0.0) -> bool:
+    def agrees_with(
+        self, model_value: float, model_half_width: float | None = 0.0
+    ) -> AcceptanceResult:
         """Criterio de aceitacao por incerteza somada.
 
             |y_modelo - y_referencia| <= delta_y_referencia + delta_y_modelo
 
         Compara na unidade declarada deste valor, nao em SI, porque a incerteza foi
-        declarada nela.
+        declarada nela. Devolve resultado de **tres valores**: sem incerteza
+        declarada nao ha comparacao, e portanto nao ha aprovacao nem reprovacao.
         """
         return within_combined_uncertainty(
             model_value, self.value, model_half_width, self.half_width
         )
 
 
+@dataclass(frozen=True, slots=True)
+class AcceptanceResult:
+    """Resultado de comparar modelo com referencia.
+
+    ⚠ Existe porque booleano aqui produzia o mesmo defeito que ja fora corrigido em
+    ``analysis.requirements``: incerteza ausente colapsava para aprovado. Um numero
+    sem incerteza declarada nao e irrefutavel, e **inconclusivo**.
+
+    Attributes:
+        status: o veredito de tres valores.
+        reason: por que, util quando indeterminado.
+        numeric_comparison_performed: se a comparacao chegou a ser feita.
+        eligible_for_regression: se este par pode virar teste que quebra o build.
+            Falso sempre que a comparacao nao foi conclusiva.
+        difference: |modelo - referencia|, quando calculavel.
+        budget: soma das meias larguras, quando calculavel.
+    """
+
+    status: Verdict
+    reason: str
+    numeric_comparison_performed: bool
+    eligible_for_regression: bool
+    difference: float | None = None
+    budget: float | None = None
+
+    def __bool__(self) -> bool:
+        """Apenas ``SATISFIED`` e verdadeiro.
+
+        Indeterminado e falso **operacionalmente**, mas ver :attr:`status` antes de
+        escrever qualquer frase sobre o motivo.
+        """
+        return self.status is Verdict.SATISFIED
+
+
 def within_combined_uncertainty(
     model_value: float,
     reference_value: float,
-    model_half_width: float,
-    reference_half_width: float,
-) -> bool:
-    """Criterio de aceitacao do projeto.
+    model_half_width: float | None,
+    reference_half_width: float | None,
+) -> AcceptanceResult:
+    """Criterio de aceitacao do projeto, de tres valores.
 
     Substitui a tolerancia percentual fixa. Um catalogo pode dar massa com precisao
     de gramas e empuxo arredondado ao quilograma-forca na mesma pagina; aplicar a
     mesma porcentagem aos dois produz bloqueio falso no integrador continuo.
+
+    Incerteza ausente de qualquer um dos lados devolve ``INDETERMINATE``: a
+    comparacao nao e feita, e o par **nao** e elegivel como teste de regressao.
     """
+    if model_half_width is None or reference_half_width is None:
+        faltando = []
+        if model_half_width is None:
+            faltando.append("modelo")
+        if reference_half_width is None:
+            faltando.append("referencia")
+        return AcceptanceResult(
+            status=Verdict.INDETERMINATE,
+            reason=f"uncertainty_missing: {', '.join(faltando)}",
+            numeric_comparison_performed=False,
+            eligible_for_regression=False,
+        )
+
+    difference = abs(model_value - reference_value)
     budget = model_half_width + reference_half_width
-    if budget == float("inf"):
-        return True
-    return abs(model_value - reference_value) <= budget
+    dentro = difference <= budget
+
+    return AcceptanceResult(
+        status=Verdict.SATISFIED if dentro else Verdict.VIOLATED,
+        reason="within_combined_uncertainty" if dentro else "outside_combined_uncertainty",
+        numeric_comparison_performed=True,
+        eligible_for_regression=True,
+        difference=difference,
+        budget=budget,
+    )

@@ -25,6 +25,7 @@ uma regra descreve algo que **nao se negocia** sem invalidar resultados.
 | [[Regras de procedencia]] | O que a fonte mede, declara, calcula ou infere |
 | [[Regras de tempo e eventos]] | Retencao, atraso, agendado contra guarda |
 | [[Estavel definido operacionalmente]] | O que "estavel" significa em numero |
+| [[Violado nao e indeterminado]] | Nao demonstrado nao e reprovado, nem aprovado |
 
 ## A regra de ouro
 

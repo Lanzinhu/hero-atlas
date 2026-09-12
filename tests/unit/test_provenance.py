@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from hero_atlas.provenance import (
+    AcceptanceResult,
     EvidenceClass,
     Provenance,
     SourceType,
@@ -16,6 +17,7 @@ from hero_atlas.provenance import (
     sha256_of_file,
     within_combined_uncertainty,
 )
+from hero_atlas.verdict import Verdict
 
 pytestmark = pytest.mark.unit
 
@@ -109,14 +111,44 @@ def test_incerteza_normal_exige_desvio():
         Uncertainty(type="normal", mean=1.0)
 
 
-def test_incerteza_desconhecida_nunca_reprova():
-    """Um numero sem incerteza declarada nao pode reprovar nada."""
+def test_incerteza_desconhecida_e_inconclusiva_nao_aprovada():
+    """Antes isto devolvia infinito e colapsava para aprovado.
+
+    Isso invertia a regra central do projeto: um numero SEM procedencia virava
+    irrefutavel por tolerancia infinita. O correto e inconclusivo.
+    """
     desconhecida = Uncertainty()
-    assert desconhecida.half_width(100.0) == float("inf")
+    assert desconhecida.is_known is False
+    assert desconhecida.half_width(100.0) is None
 
     proc = Provenance(source_type=SourceType.ESTIMATE, evidence_class=EvidenceClass.INFERRED)
     valor = TracedValue(value=100.0, unit="N", provenance=proc)
-    assert valor.agrees_with(1e9) is True
+
+    resultado = valor.agrees_with(1e9)
+    assert resultado.status is Verdict.INDETERMINATE
+    assert resultado.numeric_comparison_performed is False
+    assert resultado.eligible_for_regression is False
+    assert "uncertainty_missing" in resultado.reason
+    assert bool(resultado) is False
+
+
+def test_incerteza_conhecida_permite_comparacao():
+    unc = Uncertainty(type="bounded", unit="N", lower=390.0, upper=404.0)
+    assert unc.is_known is True
+
+
+def test_resultado_carrega_diferenca_e_orcamento():
+    r = within_combined_uncertainty(10.0, 11.0, 0.4, 0.7)
+    assert r.difference == pytest.approx(1.0)
+    assert r.budget == pytest.approx(1.1)
+    assert r.eligible_for_regression is True
+
+
+def test_par_inconclusivo_nao_vira_teste_de_regressao():
+    """Elegibilidade para quebrar o build exige comparacao conclusiva."""
+    r = within_combined_uncertainty(10.0, 11.0, None, 0.5)
+    assert r.eligible_for_regression is False
+    assert isinstance(r, AcceptanceResult)
 
 
 def test_meia_largura_de_faixa_assimetrica():
@@ -137,14 +169,14 @@ def test_criterio_de_incerteza_somada():
     Substitui a tolerancia percentual fixa. Um catalogo pode dar massa com precisao
     de gramas e empuxo arredondado ao quilograma-forca na mesma pagina.
     """
-    assert within_combined_uncertainty(10.0, 11.0, 0.4, 0.7) is True  # 1,0 <= 1,1
-    assert within_combined_uncertainty(10.0, 11.0, 0.2, 0.3) is False  # 1,0 > 0,5
+    assert within_combined_uncertainty(10.0, 11.0, 0.4, 0.7).status is Verdict.SATISFIED
+    assert within_combined_uncertainty(10.0, 11.0, 0.2, 0.3).status is Verdict.VIOLATED
 
 
 def test_agrees_with_usa_a_unidade_declarada():
     empuxo = TracedValue(value=397.0, unit="N", provenance=ficha_jetcat())
-    assert empuxo.agrees_with(400.0) is True  # dentro dos 7 N de faixa
-    assert empuxo.agrees_with(420.0) is False
+    assert empuxo.agrees_with(400.0).status is Verdict.SATISFIED  # dentro dos 7 N
+    assert empuxo.agrees_with(420.0).status is Verdict.VIOLATED
 
 
 def test_unidade_invalida_falha_na_construcao():

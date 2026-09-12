@@ -234,3 +234,33 @@ def test_filtros_dedicados_por_classe():
     assert [r.parameter for r in regiao.violated_by(candidato)] == ["Tdot_up_max"]
     assert [r.parameter for r in regiao.indeterminate_for(candidato)] == ["eta_inst"]
     assert len(regiao.unmet_by(candidato)) == 2
+
+
+def test_refutado_e_rejeitado_sao_coisas_diferentes():
+    """Rejeicao operacional pode tratar os dois igual. O relatorio, nunca.
+
+    candidato_rejeitado = veredito em {violado, indeterminado}
+    elegivel_como_conclusao = veredito em {satisfeito, violado}
+    """
+    so_indeterminado = regiao_tres().evaluate({"tau_subida": 0.20, "Tdot_up_max": 1200.0})
+    com_violacao = regiao_tres().evaluate({"tau_subida": 0.90})
+
+    # os dois bloqueiam o candidato
+    assert so_indeterminado.is_rejected is True
+    assert com_violacao.is_rejected is True
+
+    # mas so um afirma falha do sistema
+    assert so_indeterminado.is_refuted is False
+    assert com_violacao.is_refuted is True
+
+
+def test_veredito_sabe_se_e_conclusivo():
+    assert Verdict.SATISFIED.is_conclusive is True
+    assert Verdict.VIOLATED.is_conclusive is True
+    assert Verdict.INDETERMINATE.is_conclusive is False
+
+
+def test_veredito_sabe_se_bloqueia():
+    assert Verdict.SATISFIED.rejects is False
+    assert Verdict.VIOLATED.rejects is True
+    assert Verdict.INDETERMINATE.rejects is True
