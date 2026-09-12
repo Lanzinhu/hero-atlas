@@ -14,6 +14,9 @@ Sem hardware. Custo zero. Python.
 > Todo resultado deste repositório é **condicional à geometria e à família declarada de modelos**.
 > Nada aqui representa hardware.
 >
+> **A dinâmica ainda não foi implementada.** Os resultados atuais pertencem ao trim **estático** de
+> uma geometria parametrizada. Nada aqui diz respeito a estabilidade, resposta ou pilotabilidade.
+>
 > Isso não é ressalva de rodapé: é o resultado principal do levantamento de evidência até agora, e
 > está codificado em [`model_status.py`](src/hero_atlas/model_status.py), que **recusa** emitir
 > resultado condicional sem carimbo.
@@ -21,6 +24,7 @@ Sem hardware. Custo zero. Python.
 ## Estado do projeto
 
 **Marco 2 entregue:** trim vetorial e autoridade estática.
+**Marco 3 em andamento:** dinâmica de corpo rígido e suíte analítica.
 **Próximo:** dinâmica reduzida, propulsão paramétrica e eventos.
 
 | Marco | Entrega | Estado |
@@ -28,9 +32,9 @@ Sem hardware. Custo zero. Python.
 | 0 | Unidades, procedência, agregação de massa, eventos, telemetria | entregue |
 | 1 | Envelope de massa e empuxo, autonomia | entregue |
 | 2 | Trim com momento do peso, mapa de autoridade | entregue |
-| 3 | Dinâmica seis graus de liberdade | próximo |
+| 3 | Dinâmica seis graus de liberdade | núcleo e suíte analítica prontos |
 
-377 testes, lint limpo.
+398 testes, lint limpo.
 
 ## A pergunta
 
