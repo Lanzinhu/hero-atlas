@@ -40,6 +40,61 @@ TURBINA_KG = 2.20
 
 TURBINA_DIAMETRO_MM = 120.0
 TURBINA_COMPRIMENTO_MM = 299.0
+TURBINA_EMPUXO_MAX_N = 26.0 * G0
+"""Teto da K-260G4. ⚠ MENOR que a classe generica de 35 kgf usada nos experimentos."""
+
+CLASSE_GENERICA_N = 35.0 * G0
+"""Teto por bocal assumido nos experimentos 1 a 4. Nao corresponde a turbina real."""
+
+
+def _geometria_com_teto(teto_N: float):
+    from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
+
+    t15 = math.radians(15.0)
+    return parametric_layout(
+        pairs=[
+            ArmPairSpec(0.32, 0.30, -0.15, math.radians(15.0), +t15),
+            ArmPairSpec(0.20, 0.40, -0.26, math.radians(30.0)),
+            ArmPairSpec(0.02, 0.35, -0.37, math.radians(45.0), -t15),
+        ],
+        axial=[AxialNozzleSpec(name="dorsal", forward_m=-0.15, height_m=0.10)],
+        thrust_max_N=teto_N,
+        idle_fraction=0.10,
+    )
+
+
+def _braco_max(geo) -> float:
+    return max(
+        float(np.linalg.norm(b.position_body_m - geo.reference_point_body_m)) for b in geo.available
+    )
+
+
+def _maior_massa(geo) -> float:
+    """Maior massa bruta que ainda fecha trim, por busca binaria."""
+    from hero_atlas.verdict import Verdict
+
+    lo, hi = 50.0, 400.0
+    for _ in range(50):
+        meio = 0.5 * (lo + hi)
+        s = solve_trim(geo, mass_kg=meio, center_of_mass_body_m=CENTRO_DE_MASSA_M)
+        if s.status is Verdict.SATISFIED:
+            lo = meio
+        else:
+            hi = meio
+    return lo
+
+
+def _folga(geo, massa_kg: float) -> float:
+    """Menor folga superior de empuxo no trim de margem maxima."""
+    s = solve_trim(
+        geo,
+        mass_kg=massa_kg,
+        center_of_mass_body_m=CENTRO_DE_MASSA_M,
+        objective=TrimObjective.MAX_MARGIN,
+    )
+    if not s.feasible:
+        return 0.0
+    return min(1.0 - t / n.thrust_max_N for t, n in zip(s.thrusts_N, geo.available, strict=True))
 
 
 def main() -> None:
@@ -119,6 +174,47 @@ def main() -> None:
     print("     restricao de envelope. Isso seria resultado, nao contratempo.")
     print()
 
+    # ------------------------------------------------- classe contra turbina real
+    print("3b. ATENCAO: a turbina real tem teto MENOR que a classe dos experimentos")
+    print()
+    geo_real = _geometria_com_teto(TURBINA_EMPUXO_MAX_N)
+    massa_alvo = PILOTO_KG + ESTRUTURA_KG + 7 * TURBINA_KG + COMBUSTIVEL_KG
+    print(f"   {'':34} {'classe 35 kgf':>16} {'K-260G4 real':>16}")
+    linhas_cmp = (
+        ("teto por bocal", f"{CLASSE_GENERICA_N:.0f} N", f"{TURBINA_EMPUXO_MAX_N:.0f} N"),
+        (
+            "empuxo instalado",
+            f"{7 * CLASSE_GENERICA_N / G0:.0f} kgf",
+            f"{7 * TURBINA_EMPUXO_MAX_N / G0:.0f} kgf",
+        ),
+        (
+            "maior massa bruta com trim",
+            f"{_maior_massa(geo):.1f} kg",
+            f"{_maior_massa(geo_real):.1f} kg",
+        ),
+        (
+            f"folga superior a {massa_alvo:.1f} kg",
+            f"{_folga(geo, massa_alvo):.1%}",
+            f"{_folga(geo_real, massa_alvo):.1%}",
+        ),
+        (
+            "momento de fixacao no teto",
+            f"{CLASSE_GENERICA_N * _braco_max(geo):.0f} N.m",
+            f"{TURBINA_EMPUXO_MAX_N * _braco_max(geo):.0f} N.m",
+        ),
+    )
+    for rotulo, a, b in linhas_cmp:
+        print(f"   {rotulo:34} {a:>16} {b:>16}")
+    print()
+    print("   ⚠ DIMENSIONE A ESTRUTURA PELA TURBINA QUE VOCE MODELAR, nao pela classe.")
+    print("     Usar o momento da classe generica superdimensiona; usar o da turbina")
+    print("     real e correto para o modelo, e ERRADO se depois trocar de turbina.")
+    print()
+    print("   ⚠ E a folga de massa encolhe muito com a turbina real. Com a classe")
+    print("     generica sobrava bastante; com a K-260G4 sobra pouco, e o orcamento de")
+    print("     12 kg de estrutura passa a ser o numero que decide se fecha.")
+    print()
+
     # ---------------------------------------------------------------- massa
     print("4. ORCAMENTO DE MASSA A FECHAR, hoje estimado em bloco")
     print(f"   {'componente':34} {'alvo':>9} {'estado hoje':>16}")
@@ -139,9 +235,12 @@ def main() -> None:
     print("     bomba, valvula, bateria de aviônica, cabo, protecao termica.")
     print()
     print("   O CAD REPROVA a massa se a soma passar de:")
-    folga = geo.total_thrust_max_N / G0 * 0.85 - total
-    print(f"     {geo.total_thrust_max_N / G0 * 0.85:.1f} kg  (85 por cento do empuxo instalado)")
-    print(f"     folga atual: {folga:.1f} kg")
+    limite_real = _maior_massa(_geometria_com_teto(TURBINA_EMPUXO_MAX_N))
+    print(f"     {limite_real:.1f} kg  com a K-260G4, ponto em que o trim deixa de fechar")
+    print(f"     folga atual: {limite_real - total:.1f} kg")
+    print()
+    print("   ⚠ Esse limite e de TRIM, nao de conforto: no ponto exato a folga de")
+    print("     empuxo e zero e nao sobra autoridade nenhuma para controle.")
     print()
 
     # ---------------------------------------------------------------- contrato
@@ -170,12 +269,10 @@ def main() -> None:
 
     # ---------------------------------------------------------------- estrutura
     print("6. REQUISITOS ESTRUTURAIS JA LEVANTADOS")
-    maior_momento = max(
-        b.thrust_max_N * float(np.linalg.norm(b.position_body_m - geo.reference_point_body_m))
-        for b in geo.nozzles
-    )
-    print(f"   carga por berco, no TETO do propulsor:   {geo.nozzles[0].thrust_max_N:.0f} N")
-    print(f"   maior momento de fixacao, em flexao:     {maior_momento:.0f} N.m")
+    braco = _braco_max(geo)
+    print(f"   carga por berco, no teto da K-260G4:     {TURBINA_EMPUXO_MAX_N:.0f} N")
+    print(f"   momento de fixacao com essa turbina:     {TURBINA_EMPUXO_MAX_N * braco:.0f} N.m")
+    print(f"   (com a classe generica de 35 kgf seria:  {CLASSE_GENERICA_N * braco:.0f} N.m)")
     print(f"   empuxo no trim, por bocal:               {trim.thrusts_N.mean():.0f} N")
     print()
     print("   ⚠ Dimensionar pelo TETO, nao pelo trim. A alocacao usa o teto em")

@@ -56,6 +56,23 @@ familia A, sete bocais. O que modelar, e o que devolver ao simulador.
    ⚠ Se nao couber, a geometria morre e o funil precisa rodar de novo com
      restricao de envelope. Isso seria resultado, nao contratempo.
 
+3b. ATENCAO: a turbina real tem teto MENOR que a classe dos experimentos
+
+                                         classe 35 kgf     K-260G4 real
+   teto por bocal                                343 N            255 N
+   empuxo instalado                            245 kgf          182 kgf
+   maior massa bruta com trim                 208.1 kg         154.6 kg
+   folga superior a 127.4 kg                     38.8%            17.6%
+   momento de fixacao no teto                  178 N.m          132 N.m
+
+   ⚠ DIMENSIONE A ESTRUTURA PELA TURBINA QUE VOCE MODELAR, nao pela classe.
+     Usar o momento da classe generica superdimensiona; usar o da turbina
+     real e correto para o modelo, e ERRADO se depois trocar de turbina.
+
+   ⚠ E a folga de massa encolhe muito com a turbina real. Com a classe
+     generica sobrava bastante; com a K-260G4 sobra pouco, e o orcamento de
+     12 kg de estrutura passa a ser o numero que decide se fecha.
+
 4. ORCAMENTO DE MASSA A FECHAR, hoje estimado em bloco
    componente                              alvo      estado hoje
    piloto com protecao                   80.0 kg         estimado
@@ -69,8 +86,11 @@ familia A, sete bocais. O que modelar, e o que devolver ao simulador.
      bomba, valvula, bateria de aviônica, cabo, protecao termica.
 
    O CAD REPROVA a massa se a soma passar de:
-     208.2 kg  (85 por cento do empuxo instalado)
-     folga atual: 80.8 kg
+     154.6 kg  com a K-260G4, ponto em que o trim deixa de fechar
+     folga atual: 27.2 kg
+
+   ⚠ Esse limite e de TRIM, nao de conforto: no ponto exato a folga de
+     empuxo e zero e nao sobra autoridade nenhuma para controle.
 
 5. O QUE O CAD DEVOLVE AO SIMULADOR, por componente
    A interface ja existe: hero_atlas.airframe.mass_properties.MassComponent
@@ -95,8 +115,9 @@ familia A, sete bocais. O que modelar, e o que devolver ao simulador.
      Janela longitudinal viavel hoje: 105 a 210 mm.
 
 6. REQUISITOS ESTRUTURAIS JA LEVANTADOS
-   carga por berco, no TETO do propulsor:   343 N
-   maior momento de fixacao, em flexao:     178 N.m
+   carga por berco, no teto da K-260G4:     255 N
+   momento de fixacao com essa turbina:     132 N.m
+   (com a classe generica de 35 kgf seria:  178 N.m)
    empuxo no trim, por bocal:               189 N
 
    ⚠ Dimensionar pelo TETO, nao pelo trim. A alocacao usa o teto em

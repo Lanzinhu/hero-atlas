@@ -34,6 +34,7 @@ controlador amostrado, alocador com horizonte, atuador com atraso e corpo rígid
 mesmo passo de integração.
 
 📄 **[Especificação técnica completa](docs/ESPECIFICACAO.md)** — o documento de auditoria.
+📐 **[Guia de modelagem](docs/GUIA-MODELAGEM.md)** — o que modelar em CAD, passo a passo, com todos os números.
 
 | Marco | Entrega | Estado |
 |---|---|---|

@@ -444,6 +444,26 @@ Experimentos individuais em `tools/`: `sweep_geometry`, `compare_energy_architec
 
 ---
 
+## 11b. Guia de modelagem
+
+`docs/GUIA-MODELAGEM.md` é autocontido e destinado a quem vai abrir o FreeCAD: unidades,
+referencial, tabela mestra de coordenadas, passo a passo com o portão de envelope,
+dimensionamento preliminar, exportação, verificação e lista de checagem.
+
+⚠ Ele traz uma correção relevante que não estava nos experimentos 1 a 4: aqueles usaram
+uma **classe genérica de 35 kgf por bocal**, que nenhuma turbina real da lista atinge. A
+K-260G4 dá 26 kgf, e com ela os números mudam:
+
+| Grandeza | Classe genérica | K-260G4 real |
+|---|---:|---:|
+| Empuxo instalado | 245 kgf | 182 kgf |
+| Massa bruta máxima com trim | 208,1 kg | **154,6 kg** |
+| Folga superior a 127,4 kg | 38,8% | **17,6%** |
+| Momento de fixação no teto | 178 N·m | 132 N·m |
+
+A folga de massa cai de 80,7 kg para **27,2 kg**, e o orçamento de 12 kg de estrutura
+passa a ser o número que decide se a conta fecha.
+
 ## 12. O próximo passo
 
 Não é escolher turbina. É **pedir quatro números** a um fabricante, porque nenhum deles
