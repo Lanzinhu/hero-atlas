@@ -96,8 +96,8 @@ import numpy as np
 from hero_atlas.airframe.mass_properties import MassComponent, aggregate_mass_properties
 
 esq = MassComponent("esq", 2.0, np.array([0, -0.5, 0]), np.eye(3) * 0.01, np.eye(3))
-dir = MassComponent("dir", 2.0, np.array([0, +0.5, 0]), np.eye(3) * 0.01, np.eye(3))
-r = aggregate_mass_properties((esq, dir))
+direita = MassComponent("dir", 2.0, np.array([0, +0.5, 0]), np.eye(3) * 0.01, np.eye(3))
+r = aggregate_mass_properties((esq, direita))
 print(r.mass_kg)                      # 4.0
 print(r.center_of_mass_body_m)        # [0, 0, 0]
 print(r.inertia_about_cg_kg_m2[0, 0]) # 1.02, não 0.02
@@ -175,7 +175,7 @@ print((s.thrusts_N / G0).round(2))               # kgf por bocal
 print(s.vertical_thrust_projection_ratio)        # 0.8522
 ```
 
-**Exercício.** A razão de projeção é 0,8525. Confira que ela explica a soma:
+**Exercício.** A razão de projeção é 0,8522. Confira que ela explica a soma:
 
 ```python
 print(115.0 / 0.8522, s.total_thrust_N / G0)     # 134,9 e 134,9
