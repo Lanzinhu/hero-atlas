@@ -487,3 +487,46 @@ def test_a_perda_unica_e_concluida_do_solver_nao_do_posto():
     assert all(causa is not InfeasibilityCause.NONE for causa in resultado.values()), (
         "nesta geometria e neste centro de massa, nenhuma perda unica admite trim"
     )
+
+
+def test_as_duas_relacoes_geram_exatamente_o_nucleo_a_esquerda():
+    """⚠ Fecha o diagnostico: **nao ha terceira limitacao estrutural**.
+
+    Verificar que as direcoes inatingiveis "vivem no espaco gerado por Fx, Fy e Mx"
+    e mais fraco do que o necessario: um subespaco de dimensao 2 dentro de um de
+    dimensao 3 deixaria espaco para causa nao identificada.
+
+    O que fecha e mostrar que as duas relacoes geram **exatamente** o nucleo a
+    esquerda de W:
+
+        v1 = Fx                  (nenhum bocal tem componente longitudinal)
+        v2 = Mx - k*Fy           (razao comum entre os quatro bocais de braco)
+
+    Comparando os projetores ortogonais dos dois subespacos. Se forem o mesmo
+    projetor, os subespacos sao identicos e toda deficiencia esta explicada.
+    """
+    W = allocation_matrix(layout())
+    u, _s, _vt = np.linalg.svd(W)
+    posto = np.linalg.matrix_rank(W)
+    nucleo_esquerda = u[:, posto:]
+
+    ativos = np.abs(W[1, :]) > 1e-9
+    k = (W[3, ativos] / W[1, ativos])[0]
+
+    v1 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    v2 = np.array([0.0, -k, 0.0, 1.0, 0.0, 0.0])
+    v2 = v2 / np.linalg.norm(v2)
+
+    # as duas relacoes de fato anulam W
+    np.testing.assert_allclose(v1 @ W, 0.0, atol=1e-12)
+    np.testing.assert_allclose(v2 @ W, 0.0, atol=1e-12)
+
+    # e geram o mesmo subespaco que o nucleo a esquerda
+    assert nucleo_esquerda.shape[1] == 2, "6 menos posto 4"
+    par = np.column_stack([v1, v2])
+    assert np.linalg.matrix_rank(par) == 2, "as duas relacoes sao independentes"
+
+    projetor_nucleo = nucleo_esquerda @ nucleo_esquerda.T
+    projetor_par = par @ np.linalg.pinv(par)
+
+    np.testing.assert_allclose(projetor_nucleo, projetor_par, atol=1e-12)

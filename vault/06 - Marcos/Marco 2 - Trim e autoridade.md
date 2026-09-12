@@ -105,8 +105,25 @@ dimensao do nucleo de atuadores (entrada):  5 - 4 = 1   <- teorema do posto-nuli
 | Nenhum bocal tem componente longitudinal | linha `Fx` identicamente nula |
 | Os quatro bocais de braco compartilham a mesma razao `Mx/Fy` | uma combinacao de `Fy` e `Mx` |
 
-E as duas direcoes inatingiveis de fato vivem no espaco gerado por `Fx`, `Fy` e `Mx`, o que confirma
-que ambas estao explicadas.
+### O diagnostico esta fechado
+
+⚠ Verificar que as direcoes inatingiveis "vivem no espaco gerado por `Fx`, `Fy` e `Mx`" era **mais
+fraco do que o necessario**: um subespaco de dimensao 2 dentro de um de dimensao 3 deixaria lugar
+para causa nao identificada.
+
+O que fecha e mostrar que as duas relacoes geram **exatamente** o nucleo a esquerda:
+
+```
+v1 = Fx            v2 = Mx - k*Fy,  k = -0,5506
+
+||v1^T W|| = 0            ||v2^T W|| = 3e-17
+||P_nucleo - P_par|| = 5e-15     -> mesmo subespaco, em precisao de maquina
+```
+
+Comparando os **projetores ortogonais** dos dois subespacos, nao apenas a inclusao. Coincidem.
+
+**Nao ha terceira limitacao estrutural nao explicada** nesta geometria. Congelado em
+`test_as_duas_relacoes_geram_exatamente_o_nucleo_a_esquerda`.
 
 **Uma consequencia, nao uma causa nova:** com posto 4 e cinco atuadores, o nucleo tem dimensao 1.
 Existe uma combinacao de empuxos que produz wrench identicamente nulo, uma carga interna em que os
