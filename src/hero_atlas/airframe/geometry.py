@@ -13,13 +13,17 @@ A gravidade inercial aponta para z positivo.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 __all__ = [
+    "ArmPairSpec",
+    "AxialNozzleSpec",
     "NozzleSpec",
+    "parametric_layout",
     "PropulsionGeometry",
     "allocation_matrix",
     "gravity_like_layout",
@@ -223,6 +227,101 @@ def gravity_like_layout(
             thrust_max_N=thrust_max_N,
         )
     )
+
+    referencia = (
+        np.zeros(3)
+        if reference_point_body_m is None
+        else np.asarray(reference_point_body_m, dtype=np.float64)
+    )
+    return PropulsionGeometry(nozzles=tuple(bocais), reference_point_body_m=referencia)
+
+
+@dataclass(frozen=True, slots=True)
+class ArmPairSpec:
+    """Um par simetrico de propulsores de braco, esquerdo e direito.
+
+    Cada par tem geometria propria. **Variar parametros entre pares e o que quebra
+    o acoplamento entre forca lateral e rolagem**, porque a dependencia vem de todos
+    compartilharem o mesmo valor da razao
+
+        Mx/Fy = -( span*cos(tilt) + height*sin(tilt) ) / sin(tilt)
+
+    Attributes:
+        forward_m: avanco em relacao ao ponto de referencia.
+        span_m: meia envergadura, distancia lateral ao plano de simetria.
+        height_m: altura. Negativo e acima do ponto de referencia.
+        lateral_tilt_rad: inclinacao para fora, em relacao a vertical.
+        longitudinal_tilt_rad: inclinacao para frente. Positivo empurra para tras.
+            **Zero aqui significa nenhuma forca longitudinal disponivel.**
+    """
+
+    forward_m: float
+    span_m: float
+    height_m: float
+    lateral_tilt_rad: float
+    longitudinal_tilt_rad: float = 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class AxialNozzleSpec:
+    """Propulsor no plano de simetria, tipicamente dorsal."""
+
+    name: str
+    forward_m: float
+    height_m: float
+    longitudinal_tilt_rad: float = 0.0
+
+
+def parametric_layout(
+    *,
+    pairs: Sequence[ArmPairSpec],
+    axial: Sequence[AxialNozzleSpec] = (),
+    thrust_max_N: float,
+    idle_fraction: float = 0.10,
+    reference_point_body_m: ArrayLike | None = None,
+) -> PropulsionGeometry:
+    """Constroi uma geometria a partir de pares simetricos e bocais axiais.
+
+    Generaliza :func:`gravity_like_layout` para varredura de arquitetura: cada par
+    carrega avanco, envergadura, altura e as duas inclinacoes proprias.
+
+    ⚠ Geometria **plausivel, nao medida**, em qualquer combinacao de parametros.
+    """
+    if not pairs and not axial:
+        raise ValueError("layout sem nenhum propulsor")
+    if thrust_max_N <= 0.0:
+        raise ValueError("empuxo maximo precisa ser positivo")
+    if not 0.0 <= idle_fraction < 1.0:
+        raise ValueError("fracao de marcha lenta em [0, 1)")
+
+    idle = idle_fraction * thrust_max_N
+    bocais: list[NozzleSpec] = []
+
+    for indice, par in enumerate(pairs):
+        sl, cl = math.sin(par.lateral_tilt_rad), math.cos(par.lateral_tilt_rad)
+        sx = math.sin(par.longitudinal_tilt_rad)
+        for lado, sinal in (("esq", -1.0), ("dir", +1.0)):
+            bocais.append(
+                NozzleSpec(
+                    name=f"par{indice}_{lado}",
+                    position_body_m=np.array([par.forward_m, sinal * par.span_m, par.height_m]),
+                    direction_body=np.array([sx, sinal * sl, -cl]),
+                    thrust_min_N=idle,
+                    thrust_max_N=thrust_max_N,
+                )
+            )
+
+    for bocal in axial:
+        sx = math.sin(bocal.longitudinal_tilt_rad)
+        bocais.append(
+            NozzleSpec(
+                name=bocal.name,
+                position_body_m=np.array([bocal.forward_m, 0.0, bocal.height_m]),
+                direction_body=np.array([sx, 0.0, -math.cos(bocal.longitudinal_tilt_rad)]),
+                thrust_min_N=idle,
+                thrust_max_N=thrust_max_N,
+            )
+        )
 
     referencia = (
         np.zeros(3)

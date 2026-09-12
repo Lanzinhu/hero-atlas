@@ -26,7 +26,10 @@ __all__ = [
     "AuthorityMap",
     "WrenchAxis",
     "analyse_authority",
+    "can_produce",
     "cg_window",
+    "lateral_cg_authority",
+    "single_failure_survey",
     "thrust_null_space",
 ]
 
@@ -182,3 +185,39 @@ def single_failure_survey(
         )
         resultado[bocal.name] = solucao.cause
     return resultado
+
+
+def can_produce(geometry: PropulsionGeometry, wrench: ArrayLike, *, tol: float = 1e-8) -> bool:
+    """Se um wrench esta no espaco coluna, ignorando limites de empuxo.
+
+    Responde a pergunta **geometrica**: existe algum vetor de empuxos, por maior que
+    seja, que produza esta combinacao de forca e momento? Separa impossibilidade de
+    arquitetura de falta de capacidade, que e a distincao que o ADR-007 exige.
+    """
+    alvo = np.asarray(wrench, dtype=np.float64)
+    if alvo.shape != (6,):
+        raise ValueError(f"wrench deve ter 6 componentes, recebeu {alvo.shape}")
+    W = allocation_matrix(geometry)
+    solucao, *_ = np.linalg.lstsq(W, alvo, rcond=None)
+    return bool(np.linalg.norm(W @ solucao - alvo) <= tol * max(1.0, float(np.linalg.norm(alvo))))
+
+
+def lateral_cg_authority(geometry: PropulsionGeometry) -> bool:
+    """Se a geometria consegue rolagem pura, sem forca lateral.
+
+    ⚠ **E o filtro que elimina a maior parte das arquiteturas de traje.**
+
+    Um centro de massa deslocado lateralmente exige momento de rolagem **sem** forca
+    lateral. Numa arquitetura de pares simetricos, isso vem dos graus de liberdade
+    antissimetricos, que precisam gerar tres grandezas: forca lateral, rolagem e
+    guinada.
+
+    Dois pares dao no maximo dois graus antissimetricos, e dois nao cobrem tres.
+    **E contagem de pares nao basta:** tres pares diferindo apenas em altura ainda
+    produzem posto 2, porque as contribuicoes ficam dependentes. Os pares precisam
+    diferir em envergadura, altura **e** inclinacao para que as tres contribuicoes
+    sejam independentes.
+
+    Verificado empiricamente em tools/sweep_geometry.py.
+    """
+    return can_produce(geometry, [0.0, 0.0, 0.0, 1.0, 0.0, 0.0])

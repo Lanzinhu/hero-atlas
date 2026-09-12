@@ -530,3 +530,94 @@ def test_as_duas_relacoes_geram_exatamente_o_nucleo_a_esquerda():
     projetor_par = par @ np.linalg.pinv(par)
 
     np.testing.assert_allclose(projetor_nucleo, projetor_par, atol=1e-12)
+
+
+# --------------------------------------------------------------------------- #
+# Experimento 1: o filtro que elimina a maior parte das arquiteturas
+# --------------------------------------------------------------------------- #
+
+
+def tres_pares_escalonados(longitudinal: bool = False):
+    """Tres pares diferindo em envergadura, altura **e** inclinacao."""
+    from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
+
+    t15 = math.radians(15.0)
+    pares = [
+        ArmPairSpec(0.32, 0.30, -0.15, math.radians(15.0), +t15 if longitudinal else 0.0),
+        ArmPairSpec(0.20, 0.40, -0.26, math.radians(30.0)),
+        ArmPairSpec(0.02, 0.35, -0.37, math.radians(45.0), -t15 if longitudinal else 0.0),
+    ]
+    return parametric_layout(
+        pairs=pares,
+        axial=[AxialNozzleSpec("dorsal", -0.15, 0.10)],
+        thrust_max_N=to_si(35.0, "kgf"),
+        idle_fraction=0.10,
+    )
+
+
+def test_rolagem_pura_e_o_filtro_que_elimina_quase_tudo():
+    """⚠ Um centro deslocado lateralmente exige rolagem **sem** forca lateral.
+
+    Numa arquitetura de pares simetricos isso vem dos graus antissimetricos, que
+    precisam gerar tres grandezas: forca lateral, rolagem e guinada. Dois pares dao
+    dois graus, e dois nao cobrem tres.
+    """
+    from hero_atlas.analysis.authority import lateral_cg_authority
+
+    assert lateral_cg_authority(layout()) is False
+    assert lateral_cg_authority(tres_pares_escalonados()) is True
+
+
+def test_contagem_de_pares_nao_basta():
+    """⚠ Tres pares diferindo **so em altura** ainda falham.
+
+    Achado do experimento 1. As contribuicoes antissimetricas ficam dependentes, e
+    a conclusao "mais propulsores resolve" e falsa: eles precisam diferir em
+    envergadura, altura e inclinacao.
+    """
+    from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
+    from hero_atlas.analysis.authority import lateral_cg_authority
+
+    t25 = math.radians(25.0)
+    so_altura = parametric_layout(
+        pairs=[
+            ArmPairSpec(0.32, 0.35, -0.15, t25),
+            ArmPairSpec(0.20, 0.35, -0.26, t25),
+            ArmPairSpec(0.08, 0.35, -0.37, t25),
+        ],
+        axial=[AxialNozzleSpec("dorsal", -0.15, 0.10)],
+        thrust_max_N=to_si(35.0, "kgf"),
+        idle_fraction=0.10,
+    )
+
+    assert so_altura.count == 7, "sete bocais, mais que a base"
+    assert lateral_cg_authority(so_altura) is False, "e ainda assim nao fecha"
+
+
+def test_escalonar_tudo_mais_longitudinal_da_posto_completo():
+    """A unica variante da varredura que atinge seis graus de wrench."""
+    from hero_atlas.analysis.authority import analyse_authority
+
+    completo = analyse_authority(tres_pares_escalonados(longitudinal=True))
+
+    assert completo.rank == 6
+    assert completo.full_rank
+    assert completo.zero_rows == ()
+
+
+def test_can_produce_separa_geometria_de_capacidade():
+    """Ignora limites de empuxo por construcao: responde so sobre o espaco coluna."""
+    from hero_atlas.analysis.authority import can_produce
+
+    base = layout()
+
+    assert can_produce(base, [0.0, 0.0, -1.0, 0.0, 0.0, 0.0]), "sustentacao vertical sempre da"
+    assert not can_produce(base, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]), "forca longitudinal nao"
+    assert not can_produce(base, [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]), "rolagem pura nao"
+
+
+def test_can_produce_recusa_wrench_de_tamanho_errado():
+    from hero_atlas.analysis.authority import can_produce
+
+    with pytest.raises(ValueError, match="6 componentes"):
+        can_produce(layout(), [0.0, 0.0, -1.0])

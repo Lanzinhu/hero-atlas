@@ -34,7 +34,7 @@ Sem hardware. Custo zero. Python.
 | 2 | Trim com momento do peso, mapa de autoridade | entregue |
 | 3 | Dinâmica seis graus de liberdade | núcleo e suíte analítica prontos |
 
-411 testes, lint limpo.
+416 testes, lint limpo.
 
 ## A pergunta
 
@@ -60,6 +60,21 @@ congelada:
 
 O envelope escalar do marco 1 era **condição necessária de força vertical**, nunca previsão de
 capacidade de voo.
+
+### Experimento 1: nove de onze arquiteturas eliminadas
+
+`python tools/sweep_geometry.py` varre onze variantes e mede posto, janela de centro de massa,
+projeção vertical e tolerância a falha única.
+
+O filtro decisivo é **rolagem pura**: um centro deslocado lateralmente exige momento de rolagem sem
+força lateral, o que exige três graus de liberdade antissimétricos. Dois pares de bocais dão dois.
+
+⚠ E contagem não basta: **três pares diferindo só em altura continuam falhando**. Precisam diferir
+em envergadura, altura e inclinação. "Mais propulsores resolve" é falso; propulsores mais **diversos**
+resolve.
+
+Duas variantes sobrevivem, e aparece um conflito: a geometria de maior autoridade tolera **zero**
+falhas, enquanto a de maior redundância não tem rolagem pura.
 
 ## Números de referência, e o que eles valem
 
