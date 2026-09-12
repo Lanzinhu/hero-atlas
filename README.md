@@ -29,8 +29,11 @@ Sem hardware. Custo zero. Python.
 
 ## Estado do projeto
 
-**Onde estamos: marco 3, na metade.** As duas peças do marco existem e funcionam
-isoladas. O que falta é a que as junta.
+**Onde estamos: marco 3 entregue, marco 4 parcial.** O laço fechado existe e roda:
+controlador amostrado, alocador com horizonte, atuador com atraso e corpo rígido no
+mesmo passo de integração.
+
+📄 **[Especificação técnica completa](docs/ESPECIFICACAO.md)** — o documento de auditoria.
 
 | Marco | Entrega | Estado |
 |---|---|---|
@@ -38,8 +41,9 @@ isoladas. O que falta é a que as junta.
 | 1 | Envelope de massa e empuxo, autonomia | entregue |
 | 1b | Energia por missão, elétrico contra combustível | entregue |
 | 2 | Trim com momento do peso, mapa de autoridade | entregue |
-| 3 | Dinâmica seis graus de liberdade | **metade**: peças prontas, laço fechado não |
-| 4 | Controlador, alocação por efetividade prevista | não começou |
+| 3 | Dinâmica seis graus de liberdade, laço fechado | **entregue** |
+| 4 | Controlador e alocação por efetividade prevista | parcial |
+| 5 | Varreduras de sensibilidade | parcial: atraso e rampa |
 
 Dentro do marco 3:
 
@@ -57,8 +61,15 @@ Três experimentos rodaram em cima do que já existe, todos **estáticos**:
 | 1 | quais geometrias equilibram | 9 de 11 eliminadas |
 | 2 | elétrico ou combustível, mesma massa embarcada | elétrico satura em 2,98 min |
 | 3 | funil de seis famílias por oito filtros | 2 sobrevivem, 2 não julgadas |
+| 4 | quanto atraso a arquitetura tolera | **o atraso não é o limitante** |
+| 5 | turbinas reais contra a especificação | 4 de 8 requisitos não verificáveis |
+| 6 | estrutura e ressonância, sem CAD | inércia estimada não é o gargalo |
 
-565 testes; o portão de lint e formatação cobre `src/`, `tests/`, `tools/` e `noxfile.py`,
+O achado do experimento 4 reordena o projeto: a margem de autoridade de curto prazo é
+**cinco a seis vezes menor** que a estática, o que limita a banda utilizável a cerca de
+1,5 rad/s. A arquitetura tolera atraso porque é obrigada a ser lenta.
+
+600 testes; o portão de lint e formatação cobre `src/`, `tests/`, `tools/` e `noxfile.py`,
 e a sessão `resultados` do nox confere que `docs/resultados/` bate com o código.
 
 ## A pergunta
@@ -179,6 +190,9 @@ são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
 | `experimento-1-geometria.txt` | as onze arquiteturas, com posto, janelas, rolagem pura e tolerância a falha única |
 | `experimento-2-energia.txt` | elétrico contra combustível por massa embarcada, os dois tetos de massa e a potência de barramento |
 | `experimento-3-funil.txt` | seis famílias de arquitetura por oito filtros, com o motivo de morte de cada uma |
+| `experimento-4-atraso.txt` | fronteira de atraso e rampa, e as duas margens de autoridade medidas |
+| `experimento-5-turbinas.txt` | três microturbinas de catálogo contra a especificação gerada |
+| `experimento-6-estrutura.txt` | espectro de excitação, cargas de fixação e sensibilidade à inércia |
 
 ```bash
 ./.venv/Scripts/python.exe tools/refresh_results.py

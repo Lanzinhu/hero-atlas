@@ -1,0 +1,70 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+EXPERIMENTO 6: TRIAGEM ESTRUTURAL E DE RESSONANCIA
+sem CAD, sem elementos finitos. Produz requisito, nao desenho.
+
+ESPECTRO DE EXCITACAO, o que a estrutura vai ver
+  fonte                                               faixa
+  rotacao do eixo                             500 a 1633 Hz
+  harmonico 2 do eixo                        1000 a 3267 Hz
+  harmonico 3 do eixo                        1500 a 4900 Hz
+  passagem de pa (12 pas, HIPOTESE)         6000 a 19600 Hz
+  tique do controlador                               100 Hz
+  banda de atitude                                  0.24 Hz
+
+  REQUISITO: nenhum modo estrutural do braco ou do berco do propulsor pode
+  cair nas bandas acima. A faixa de 500 a 1633 Hz e varrida continuamente
+  durante toda a operacao, entao nao ha 'passar rapido pela ressonancia'.
+
+  ⚠ A contagem de pas NAO e publicada, entao a banda de passagem de pa e
+    hipotese. E ⚠ este e um criterio de TRIAGEM: o caminho de transmissao
+    filtra, e nem toda frequencia listada chega a estrutura com amplitude
+    relevante. Reprovar um projeto so por cruzamento de Campbell seria tao
+    errado quanto ignora-lo.
+
+CARGAS DE FIXACAO, medidas no pairado da familia A
+  bocal          empuxo no trim       teto     braco      momento
+                              N          N         m          N.m
+  par0_esq                191.9      343.2     0.464         88.9
+  par0_dir                191.9      343.2     0.464         88.9
+  par1_esq                185.3      343.2     0.517         95.9
+  par1_dir                185.3      343.2     0.517         95.9
+  par2_esq                191.9      343.2     0.510         97.8
+  par2_dir                191.9      343.2     0.510         97.8
+  dorsal                  185.3      343.2     0.180         33.4
+
+  REQUISITO: cada berco suporta o TETO do propulsor, nao o valor de trim,
+  porque a alocacao usa o teto em transitorio. E a fixacao do braco carrega
+  o teto vezes o braco, em flexao, com o piloto no outro lado.
+  Maior momento de fixacao no teto: 178 N.m.
+
+QUANTO A FALTA DE CAD CUSTA: sensibilidade da fronteira a inercia
+  A inercia usada em todo o passo 5 e de um cilindro equivalente, estimada.
+  Aqui a fronteira de atraso e refeita com a inercia escalada.
+
+    fator de inercia    maior atraso que recupera
+               0.70x                      0.30 s
+               0.85x                      0.40 s
+               1.00x                      0.40 s
+               1.30x                      0.40 s
+               1.60x                      0.40 s
+
+  ⚠ Se a fronteira nao se move nesta faixa, a estimativa de inercia NAO e o
+    fator limitante e o CAD pode esperar. Se ela se move, todo numero do
+    passo 5 herda a incerteza de massa e o CAD sobe de prioridade.
+
+O QUE O CAD RESOLVERIA, e so ele
+  - tensor de inercia real, no lugar do cilindro equivalente
+  - centro de massa real, hoje escolhido como meio da janela viavel
+  - modos estruturais para confrontar com o espectro acima
+  - massa seca por componente, hoje estimada em bloco
+  - envelope geometrico: os bocais cabem onde o modelo os poe?
+
+  ⚠ Nada disso muda a conclusao central do passo 5, que e sobre RAZAO entre
+    margem estatica e margem de curto prazo. Essa razao depende da rampa e
+    do horizonte, nao da inercia.

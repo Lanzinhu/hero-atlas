@@ -1,0 +1,67 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+EXPERIMENTO 5: TURBINAS REAIS CONTRA A ESPECIFICACAO
+sete propulsores, geometria A, piloto 80 kg, estrutura 12 kg, 20 kg de combustivel
+
+O QUE OS FABRICANTES PUBLICAM
+turbina                   T max   T idle   massa   T/massa     consumo   RPM max
+                              N        N      kg      N/kg    kg/(N.s)     1/min
+--------------------------------------------------------------------------------
+JetCat P400-PRO-LN          425       14    4.01       106    4.37e-05     98000
+Kingtech K-260G4            255       --    2.20       116    4.97e-05    112000
+Kingtech K-210G4            206       --    1.74       118    4.77e-05    120000
+
+O QUE NENHUM DELES PUBLICA, E QUE E O QUE DECIDE
+  parametro                                      estado
+  constante de tempo de pequeno sinal      DESCONHECIDO
+  rampa maxima de empuxo                   DESCONHECIDO
+  atraso de transporte do comando          DESCONHECIDO
+  empuxo minimo estavel em voo             DESCONHECIDO
+  consumo especifico em carga parcial      DESCONHECIDO
+  perda de instalacao em arranjo vestivel   DESCONHECIDO
+
+  Verificado na pagina do fabricante da JetCat em 2026-09-12: nenhuma
+  especificacao de tempo, resposta, constante ou taxa aparece.
+
+  ⚠ E ha um motivo tecnico, nao comercial: a taxa de subida de empuxo e
+    limitada DELIBERADAMENTE pela unidade de controle, para nao afogar a
+    camara na aceleracao nem apagar a chama na desaceleracao. Ou seja, a
+    rampa nao e propriedade fixa do motor: e parametro de controle, com
+    margem termica e risco de apagamento do outro lado. Isso a torna, em
+    principio, NEGOCIAVEL com o fabricante, e e por isso que pedir o dado
+    e mais util que procura-lo.
+
+O QUE DA PARA VERIFICAR, montando o veiculo com cada uma
+turbina                  bruto  turbinas   trim   T/Tmax  Mx horiz    banda  autonomia
+                            kg        kg                        Nm    rad/s        min
+--------------------------------------------------------------------------------------
+JetCat P400-PRO-LN       140.1      28.1    sim     0.54      20.1   1.50 ok       4.02
+Kingtech K-260G4         127.4      15.4    sim     0.82      20.1   1.50 ok       3.91
+Kingtech K-210G4         124.2      12.2    sim     0.99       0.9   0.41 BAIXA       4.19
+
+  ⚠ A banda acima supoe rampa de 120 N/s, que **nao e publicada**. Ela e
+    hipotese de trabalho, e o numero de banda herda essa incerteza inteira.
+
+VEREDITO POR REQUISITO
+  requisito                                      verificavel?
+  empuxo de pairado por bocal                             sim
+  faixa de empuxo suficiente para o momento               sim
+  massa de propulsao dentro do orcamento                  sim
+  autonomia de missao                          sim, com ressalva
+  momento disponivel no horizonte              NAO, depende da rampa
+  banda de atitude alcancavel                  NAO, depende da rampa
+  tolerancia a atraso                          NAO, atraso nao publicado
+  estabilidade em malha fechada                           NAO
+
+  Quatro dos oito requisitos NAO podem ser verificados com dado publicado.
+  Os quatro sao exatamente os que dependem de dinamica.
+
+  ⚠ Conclusao permitida: com os dados publicados, nenhuma candidata pode
+    ser aprovada nem reprovada nos criterios dinamicos. O que o passo 5
+    produziu e uma LISTA DE PERGUNTAS para o fabricante, nao um pedido de
+    compra. Este e o resultado util deste experimento.

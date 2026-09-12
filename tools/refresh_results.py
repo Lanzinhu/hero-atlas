@@ -29,7 +29,9 @@ import compare_energy_architectures  # noqa: E402
 import delay_sweep  # noqa: E402
 import dump_geometry_detail  # noqa: E402
 import funnel  # noqa: E402
+import structure_screen  # noqa: E402
 import sweep_geometry  # noqa: E402
+import turbine_match  # noqa: E402
 
 DESTINO = pathlib.Path("docs/resultados")
 
@@ -48,6 +50,8 @@ EXPERIMENTOS = (
     ("geometria-detalhe.txt", dump_geometry_detail.main),
     ("experimento-3-funil.txt", funnel.main),
     ("experimento-4-atraso.txt", delay_sweep.main),
+    ("experimento-5-turbinas.txt", turbine_match.main),
+    ("experimento-6-estrutura.txt", structure_screen.main),
 )
 
 
