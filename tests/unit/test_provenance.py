@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from hero_atlas.provenance import (
     AcceptanceResult,
     EvidenceClass,
+    FrozenComparison,
     Provenance,
     SourceType,
     TracedValue,
@@ -225,3 +226,106 @@ def test_benchmark_aceito_implica_congelavel():
         r = within_combined_uncertainty(*args)
         if r.accepted_as_benchmark:
             assert r.eligible_for_regression
+
+
+# --------------------------------------------------------------------------- #
+# Congelamento: preserva a discrepancia SEM perder a razao dela existir
+# --------------------------------------------------------------------------- #
+
+
+def ficha_arquivada() -> Provenance:
+    return ficha_jetcat().model_copy(
+        update={"source_file_sha256": "b" * 64, "source_revision": "rev B"}
+    )
+
+
+def test_congela_concordancia_sem_exigir_justificativa():
+    resultado = within_combined_uncertainty(400.0, 397.0, 0.0, 7.0)
+
+    congelado = FrozenComparison.freeze(
+        resultado,
+        reference=ficha_arquivada(),
+        model_version="0.1.0",
+        frozen_on=date(2026, 9, 12),
+    )
+
+    assert congelado.is_known_discrepancy is False
+    assert congelado.result.accepted_as_benchmark is True
+
+
+def test_congela_discordancia_conhecida_com_justificativa():
+    """Fixa o comportamento atual e obriga decisao explicita quando algo evoluir."""
+    resultado = within_combined_uncertainty(500.0, 397.0, 0.0, 7.0)
+
+    congelado = FrozenComparison.freeze(
+        resultado,
+        reference=ficha_arquivada(),
+        model_version="0.1.0",
+        frozen_on=date(2026, 9, 12),
+        justification="reingestao nao modelada; divergencia esperada ate o deck existir",
+    )
+
+    assert congelado.is_known_discrepancy is True
+    assert congelado.result.accepted_as_benchmark is False
+    assert "reingestao" in congelado.justification
+
+
+def test_discordancia_sem_justificativa_e_recusada():
+    """Sem o motivo, a suite preserva a discrepancia e perde a razao de ela existir."""
+    resultado = within_combined_uncertainty(500.0, 397.0, 0.0, 7.0)
+
+    with pytest.raises(ValueError, match="justificativa"):
+        FrozenComparison.freeze(
+            resultado,
+            reference=ficha_arquivada(),
+            model_version="0.1.0",
+            frozen_on=date(2026, 9, 12),
+        )
+
+
+def test_indeterminado_nao_pode_ser_congelado():
+    resultado = within_combined_uncertainty(400.0, 397.0, None, 7.0)
+
+    with pytest.raises(ValueError, match="nao congelavel"):
+        FrozenComparison.freeze(
+            resultado,
+            reference=ficha_arquivada(),
+            model_version="0.1.0",
+            frozen_on=date(2026, 9, 12),
+            justification="qualquer",
+        )
+
+
+def test_registro_carrega_todo_o_contexto_do_congelamento():
+    """Revisao, hash, versao do modelo, data, incerteza, aplicabilidade e motivo."""
+    resultado = within_combined_uncertainty(500.0, 397.0, 0.0, 7.0)
+    congelado = FrozenComparison.freeze(
+        resultado,
+        reference=ficha_arquivada(),
+        model_version="0.1.0",
+        frozen_on=date(2026, 9, 12),
+        justification="divergencia conhecida",
+    )
+
+    registro = congelado.as_record()
+
+    for campo in (
+        "status",
+        "difference",
+        "budget",
+        "accepted_as_benchmark",
+        "is_known_discrepancy",
+        "model_version",
+        "frozen_on",
+        "justification",
+        "source_revision",
+        "source_file_sha256",
+        "source_archived",
+        "uncertainty",
+        "applicability",
+    ):
+        assert campo in registro, f"registro sem {campo}"
+
+    assert registro["frozen_on"] == "2026-09-12"
+    assert registro["source_revision"] == "rev B"
+    assert registro["source_archived"] is True

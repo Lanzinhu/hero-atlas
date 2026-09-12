@@ -16,28 +16,57 @@ from __future__ import annotations
 import ast
 import dataclasses
 import importlib
+import pathlib
 import subprocess
 import sys
 
 import pytest
 
+import hero_atlas
+
 pytestmark = pytest.mark.validation
 
-MODULOS_DO_NUCLEO = [
-    "hero_atlas",
-    "hero_atlas.units",
-    "hero_atlas.verdict",
-    "hero_atlas.provenance",
-    "hero_atlas.airframe",
-    "hero_atlas.airframe.mass_properties",
-    "hero_atlas.sim",
-    "hero_atlas.sim.events",
-    "hero_atlas.io",
-    "hero_atlas.io.telemetry",
-    "hero_atlas.model_status",
-    "hero_atlas.analysis",
-    "hero_atlas.analysis.requirements",
-]
+FORA_DO_NUCLEO: dict[str, str] = {
+    # modulo -> justificativa. Vazio hoje, e cada entrada futura precisa de motivo.
+}
+"""Modulos sob ``src/hero_atlas`` deliberadamente fora da varredura.
+
+Manter vazio enquanto possivel. Cada entrada e uma excecao a arquitetura e precisa
+dizer por que existe.
+"""
+
+
+def _descobrir_modulos_do_nucleo() -> list[str]:
+    """Deriva a lista percorrendo o pacote, em vez de mante-la a mao.
+
+    ⚠ A lista era manual e **um modulo novo ficou de fora sem ninguem notar**. Lista
+    manual de cobertura e fragil por construcao: ela depende de alguem lembrar de
+    edita-la no dia em que cria ``verdict.py``, e o custo de esquecer e uma garantia
+    que evapora em silencio.
+
+    Derivar resolve a segunda das duas garantias que este arquivo precisa dar:
+
+    1. a varredura cobre cada modulo listado
+    2. a lista contem todos os modulos que de fato pertencem ao nucleo
+    """
+    raiz = pathlib.Path(hero_atlas.__file__).parent
+    modulos: list[str] = []
+
+    for caminho in sorted(raiz.rglob("*.py")):
+        relativo = caminho.relative_to(raiz)
+        partes = (
+            relativo.parent.parts
+            if relativo.name == "__init__.py"
+            else (*relativo.parent.parts, relativo.stem)
+        )
+        nome = ".".join(("hero_atlas", *partes))
+        if nome not in FORA_DO_NUCLEO:
+            modulos.append(nome)
+
+    return modulos
+
+
+MODULOS_DO_NUCLEO = _descobrir_modulos_do_nucleo()
 
 MODULOS_PESADOS = [
     "pandas",
@@ -298,3 +327,49 @@ def test_detector_permite_import_lazy_em_lambda():
 def test_detector_permite_import_lazy_em_funcao_assincrona():
     fonte = "async def carregar():\n    import pandas\n    return pandas\n"
     assert _modulos(fonte) == []
+
+
+# --------------------------------------------------------------------------- #
+# Guardas da propria lista de cobertura
+# --------------------------------------------------------------------------- #
+
+
+def test_a_lista_do_nucleo_e_derivada_e_nao_vazia():
+    """Se a descoberta falhar em silencio, todos os testes parametrizados somem."""
+    assert len(MODULOS_DO_NUCLEO) >= 10
+    assert "hero_atlas" in MODULOS_DO_NUCLEO
+
+
+def test_a_lista_cobre_todo_arquivo_do_pacote():
+    """A segunda garantia: nenhum modulo do nucleo fica fora da varredura.
+
+    Um modulo novo entra na cobertura pelo ato de existir, nao por alguem lembrar
+    de editar uma lista.
+    """
+    raiz = pathlib.Path(hero_atlas.__file__).parent
+    arquivos = {c for c in raiz.rglob("*.py")}
+    cobertos = len(MODULOS_DO_NUCLEO) + len(FORA_DO_NUCLEO)
+
+    assert cobertos == len(arquivos), (
+        f"{len(arquivos)} arquivos no pacote, {cobertos} contabilizados. "
+        "A descoberta esta perdendo arquivo."
+    )
+
+
+def test_toda_excecao_da_allowlist_tem_justificativa_e_existe():
+    """Entrada sem motivo vira buraco permanente. Entrada obsoleta vira mentira."""
+    nomes_reais = set(_descobrir_modulos_do_nucleo()) | set(FORA_DO_NUCLEO)
+
+    for modulo, motivo in FORA_DO_NUCLEO.items():
+        assert motivo.strip(), f"{modulo} esta fora da varredura sem justificativa"
+        assert modulo in nomes_reais, f"{modulo} nao existe mais; remova da allowlist"
+
+
+def test_modulos_criados_recentemente_estao_cobertos():
+    """Regressao direta do esquecimento que motivou a derivacao automatica."""
+    for modulo in (
+        "hero_atlas.verdict",
+        "hero_atlas.model_status",
+        "hero_atlas.analysis.requirements",
+    ):
+        assert modulo in MODULOS_DO_NUCLEO

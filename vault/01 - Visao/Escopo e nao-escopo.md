@@ -85,5 +85,26 @@ A varredura estatica por arvore sintatica cobre quatro formas de importacao e de
 A regra nao e "ninguem pode ter integracao opcional". E "o nucleo nao tenta importar ferramenta
 pesada ao ser carregado". Adaptador e script fora do nucleo continuam livres.
 
+### ⚠ Tres garantias distintas, e a varredura cobre so a primeira
+
+| Garantia | Quem impoe |
+|---|---|
+| O nucleo nao **tenta importar** ferramenta pesada ao ser carregado | varredura por arvore sintatica |
+| As dependencias declaradas do projeto sao as que estao no manifesto | `pyproject.toml` e revisao |
+| A fronteira entre nucleo e ferramenta opcional esta no lugar certo | revisao de modulo publico |
+
+"Permitido dentro de funcao" significa **apenas** que nao viola o isolamento no instante de
+importacao. Nao significa que a chamada seja arquiteturalmente permitida em qualquer lugar: um
+import pesado dentro de funcao num modulo de dinamica ainda viola a fronteira se aquela funcao
+estiver no caminho operacional oficial.
+
+A varredura prova bem a primeira. As outras duas continuam sendo trabalho de revisao.
+
+### A lista de modulos e derivada, nao mantida
+
+Ela era manual e **um modulo novo ficou de fora sem ninguem notar**. Agora a cobertura vem de
+percorrer o pacote, com uma allowlist de excecoes que hoje esta vazia e cujas entradas futuras
+precisam de justificativa. Um modulo entra na cobertura pelo ato de existir.
+
 O nome computado falha em vez de passar porque aprovar por nao conseguir decidir seria o mesmo erro
 de categoria que [[Violado nao e indeterminado]] descreve: ausencia virando aprovacao.

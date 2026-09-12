@@ -38,6 +38,7 @@ __all__ = [
     "sha256_of_file",
     "within_combined_uncertainty",
     "AcceptanceResult",
+    "FrozenComparison",
 ]
 
 
@@ -321,3 +322,88 @@ def within_combined_uncertainty(
         difference=difference,
         budget=budget,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class FrozenComparison:
+    """Uma comparacao congelada como teste de regressao.
+
+    Congelar uma discordancia conhecida e legitimo: fixa o comportamento atual,
+    impede que uma mudanca posterior esconda ou altere a divergencia em silencio, e
+    obriga decisao explicita quando modelo ou referencia evoluir.
+
+    ⚠ Mas sem o contexto do congelamento **a suite preserva a discrepancia e perde a
+    razao de ela existir**. Daqui a seis meses ninguem sabe se aquele numero
+    diferente e defeito tolerado, limitacao conhecida do modelo, ou erro da
+    referencia. Por isso todos os campos abaixo sao obrigatorios.
+
+    Attributes:
+        result: o resultado da comparacao. Indeterminado nao pode ser congelado.
+        reference: procedencia da referencia, que carrega revisao e hash da copia.
+        model_version: versao do modelo que produziu o valor.
+        frozen_on: quando foi congelado.
+        justification: por que esta discordancia e teste em vez de bloqueio.
+            Obrigatoria quando o resultado e ``VIOLATED``.
+        applicability: contexto em que a comparacao vale.
+    """
+
+    result: AcceptanceResult
+    reference: Provenance
+    model_version: str
+    frozen_on: date
+    justification: str
+    applicability: Applicability
+
+    @classmethod
+    def freeze(
+        cls,
+        result: AcceptanceResult,
+        *,
+        reference: Provenance,
+        model_version: str,
+        frozen_on: date,
+        justification: str = "",
+    ) -> FrozenComparison:
+        """Congela, recusando o que nao pode ou nao deve ser congelado."""
+        if not result.eligible_for_regression:
+            raise ValueError(
+                f"comparacao nao congelavel: status {result.status.value!r}, "
+                f"motivo {result.reason!r}. So comparacao conclusiva vira teste."
+            )
+        if result.status is Verdict.VIOLATED and not justification.strip():
+            raise ValueError(
+                "congelar uma discordancia exige justificativa: por que ela e teste "
+                "de regressao em vez de bloqueio. Sem isso a suite preserva a "
+                "discrepancia e perde a razao de ela existir."
+            )
+        return cls(
+            result=result,
+            reference=reference,
+            model_version=model_version,
+            frozen_on=frozen_on,
+            justification=justification.strip(),
+            applicability=reference.applicability,
+        )
+
+    @property
+    def is_known_discrepancy(self) -> bool:
+        """Se o que foi congelado e uma divergencia, nao uma concordancia."""
+        return self.result.status is Verdict.VIOLATED
+
+    def as_record(self) -> dict[str, object]:
+        """Bloco a versionar junto do teste."""
+        return {
+            "status": self.result.status.value,
+            "difference": self.result.difference,
+            "budget": self.result.budget,
+            "accepted_as_benchmark": self.result.accepted_as_benchmark,
+            "is_known_discrepancy": self.is_known_discrepancy,
+            "model_version": self.model_version,
+            "frozen_on": self.frozen_on.isoformat(),
+            "justification": self.justification,
+            "source_revision": self.reference.source_revision,
+            "source_file_sha256": self.reference.source_file_sha256,
+            "source_archived": self.reference.is_archived,
+            "uncertainty": self.reference.uncertainty.model_dump(),
+            "applicability": self.applicability.model_dump(),
+        }

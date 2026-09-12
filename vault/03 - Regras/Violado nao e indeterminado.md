@@ -57,6 +57,26 @@ Um resultado `VIOLATED` **pode e deve** virar teste que confirma a rejeicao: con
 discordancia conhecida protege contra regressao silenciosa. Mas nao e benchmark aceito, e chamar de
 elegivel sem qualificar deixava a ambiguidade viva.
 
+## Congelar exige carregar o contexto junto
+
+Congelar preserva a discrepancia. **Sem o contexto, perde a razao de ela existir.**
+
+Daqui a seis meses ninguem sabe se aquele numero diferente e defeito tolerado, limitacao conhecida
+do modelo, ou erro da referencia. Por isso `FrozenComparison` exige, todos obrigatorios:
+
+| Campo | Por que |
+|---|---|
+| Revisao da fonte | a referencia pode ter mudado |
+| Hash da copia arquivada | prova de qual texto foi comparado |
+| Versao do modelo | o lado de ca tambem evolui |
+| Contexto de aplicabilidade | a comparacao vale em que condicao |
+| Incerteza utilizada | qual orcamento foi aplicado |
+| Data do congelamento | quando a decisao foi tomada |
+| **Justificativa** | por que e teste, e nao bloqueio |
+
+A justificativa e **obrigatoria quando o resultado e violado**, e opcional quando e concordancia.
+Congelar indeterminado e recusado.
+
 ## Historico
 
 O defeito apareceu **duas vezes**, e a segunda foi pior porque foi deixada para tras na primeira
