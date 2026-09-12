@@ -113,3 +113,28 @@ def test_tsfc_de_catalogo_converte_para_si():
     """TSFC 1,54 kg/(kgf*h) da JetCat P400 Pro."""
     si = to_si(1.54, "kg/(kgf*h)")
     assert si == pytest.approx(1.54 / (G0 * 3600.0), rel=1e-12)
+
+
+def test_taxa_de_empuxo_tem_unidade_propria():
+    """A rampa e tao decisiva quanto a constante de tempo, e nao tinha unidade."""
+    assert dimension_of("N/s") == "force_rate"
+    assert to_si(1.0, "kgf/s") == pytest.approx(G0)
+
+
+def test_taxa_normalizada_nao_se_confunde_com_frequencia():
+    """Dimensao propria, para nao aceitar Hz onde se espera rampa normalizada."""
+    assert dimension_of("1/s") == "normalized_rate"
+    assert dimension_of("Hz") == "frequency"
+
+    with pytest.raises(DimensionError):
+        convert(1.0, "Hz", "1/s")
+
+
+def test_taxa_normalizada_exige_a_referencia_no_argumento():
+    """A grandeza fisica do deck continua em N/s. A normalizada e derivada declarada."""
+    from hero_atlas.units import normalized_thrust_rate
+
+    assert normalized_thrust_rate(900.0, 300.0) == pytest.approx(3.0)
+
+    with pytest.raises(ValueError, match="thrust_reference_N"):
+        normalized_thrust_rate(900.0, 0.0)

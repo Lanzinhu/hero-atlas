@@ -114,6 +114,31 @@ descrevia quando falava so de atraso.
 agora**, e registrar assim impede o erro classico: preencher lacuna com numero razoavel, rodar
 simulacao sofisticada, e obter certeza decorativa.
 
+## ⚠ A taxa de rampa e grandeza fisica, nao percentual
+
+A unidade do deck e inequivocamente `N/s`. Nao newton, nao "taxa percentual" sem referencia, nao
+"empuxo por ciclo" sem periodo de controle associado.
+
+A constante de tempo e a taxa maxima limitam **regioes diferentes** da resposta:
+
+| Grandeza | O que limita |
+|---|---|
+| `tau` | a resposta local nao saturada, perto do trim |
+| `Tdot_up_max` | correcoes que exigem aumento rapido |
+| `Tdot_down_max` | rejeicao de excesso e recuperacao de perturbacao oposta |
+
+E as tres interagem com marcha lenta, limites de comando e atraso de transporte.
+
+A forma normalizada pode coexistir, **apenas como derivada declarada**:
+
+```
+lambda_dot_T = Tdot / T_ref      [1/s]
+```
+
+Implementada com a referencia como argumento obrigatorio, nunca constante de modulo: taxa
+normalizada sem a referencia ao lado nao e interpretavel. E `1/s` tem dimensao propria no registro
+de unidades, para nao ser confundida com frequencia.
+
 ## Por que carga parcial importa mais do que parece
 
 TSFC e definido como `mdot_f / F`. Fora do ponto de projeto o empuxo cai, e se o fluxo de

@@ -8,6 +8,7 @@ from hero_atlas.analysis.requirements import (
     ActuatorRequirement,
     AdmissibleRegion,
     Relation,
+    Verdict,
 )
 from hero_atlas.model_status import PROPULSAO_INSTALADA_HOJE
 from hero_atlas.units import UnitError
@@ -152,3 +153,84 @@ def test_o_estado_do_modelo_faz_parte_da_regiao():
     )
 
     assert regiao.status.is_conditional is True
+
+
+# --------------------------------------------------------------------------- #
+# Veredito de tres valores: violado nao e o mesmo que indeterminado
+# --------------------------------------------------------------------------- #
+
+
+def regiao_tres() -> AdmissibleRegion:
+    return AdmissibleRegion.of(
+        [
+            req("tau_subida", Relation.AT_MOST, 0.30, "s"),
+            req("Tdot_up_max", Relation.AT_LEAST, 900.0, "N/s"),
+            req("eta_inst", Relation.AT_LEAST, 0.80, "-"),
+        ],
+        status=PROPULSAO_INSTALADA_HOJE,
+        scenario="pairado_com_rajada",
+    )
+
+
+def test_parametro_ausente_e_indeterminado_nao_violado():
+    """A distincao que mais importa. Falta de parametro nao e reprovacao do conceito."""
+    requisito = req("tau_subida", Relation.AT_MOST, 0.30, "s")
+
+    assert requisito.evaluate({}) is Verdict.INDETERMINATE
+    assert requisito.evaluate({"tau_subida": 0.90}) is Verdict.VIOLATED
+    assert requisito.evaluate({"tau_subida": 0.20}) is Verdict.SATISFIED
+
+
+def test_regiao_separa_violado_de_indeterminado():
+    candidato = {"tau_subida": 0.20, "Tdot_up_max": 400.0}  # eta_inst ausente
+
+    veredito = regiao_tres().evaluate(candidato)
+
+    assert [r.parameter for r in veredito.satisfied] == ["tau_subida"]
+    assert [r.parameter for r in veredito.violated] == ["Tdot_up_max"]
+    assert [r.parameter for r in veredito.indeterminate] == ["eta_inst"]
+
+
+def test_indeterminado_nao_conta_como_satisfeito():
+    candidato = {"tau_subida": 0.20, "Tdot_up_max": 1200.0}  # eta_inst ausente
+
+    veredito = regiao_tres().evaluate(candidato)
+
+    assert veredito.is_satisfied is False
+    assert veredito.is_demonstrable is False
+    assert veredito.verdict is Verdict.INDETERMINATE
+
+
+def test_candidato_completo_e_bom_e_demonstravel():
+    veredito = regiao_tres().evaluate({"tau_subida": 0.20, "Tdot_up_max": 1200.0, "eta_inst": 0.88})
+
+    assert veredito.is_satisfied is True
+    assert veredito.is_demonstrable is True
+    assert veredito.verdict is Verdict.SATISFIED
+
+
+def test_violacao_tem_precedencia_sobre_indeterminacao():
+    """Se ja ha condicao furada, o modelo diz nao mesmo com outra inavaliavel."""
+    veredito = regiao_tres().evaluate({"tau_subida": 0.90})
+
+    assert veredito.verdict is Verdict.VIOLATED
+    assert veredito.is_demonstrable is False
+
+
+def test_relatorio_preserva_a_distincao():
+    """Fundir as duas faria lacuna de evidencia aparecer como reprovacao."""
+    texto = regiao_tres().evaluate({"tau_subida": 0.90}).as_report()
+
+    assert "Violadas, o modelo diz nao" in texto
+    assert "NAO e reprovacao, e falta de evidencia" in texto
+    assert "parametro ausente" in texto
+    assert "nao representa hardware" in texto
+
+
+def test_filtros_dedicados_por_classe():
+    regiao = regiao_tres()
+    candidato = {"tau_subida": 0.20, "Tdot_up_max": 400.0}
+
+    assert [r.parameter for r in regiao.violated_by(candidato)] == ["Tdot_up_max"]
+    assert [r.parameter for r in regiao.indeterminate_for(candidato)] == ["eta_inst"]
+    assert len(regiao.unmet_by(candidato)) == 2

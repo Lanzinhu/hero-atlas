@@ -35,8 +35,10 @@ from ..units import dimension_of
 
 __all__ = [
     "Relation",
+    "Verdict",
     "ActuatorRequirement",
     "AdmissibleRegion",
+    "RegionVerdict",
 ]
 
 
@@ -49,6 +51,23 @@ class Relation(StrEnum):
     @property
     def symbol(self) -> str:
         return "<=" if self is Relation.AT_MOST else ">="
+
+
+class Verdict(StrEnum):
+    """Tres valores, porque dois escondem a diferenca que mais importa.
+
+    ``VIOLATED`` e o modelo dizendo **nao**: o candidato existe e fura o limite.
+    ``INDETERMINATE`` e o modelo dizendo que **nao da para concluir**: falta o
+    parametro, entao a satisfacao nao e demonstravel sob aquele candidato.
+
+    Fundir os dois num booleano transforma lacuna de evidencia em veredito
+    negativo, que e o espelho exato do erro que o carimbo de estado do modelo
+    bloqueia na outra direcao. A distincao **precisa sobreviver ate o relatorio**.
+    """
+
+    SATISFIED = "satisfied"
+    VIOLATED = "violated"
+    INDETERMINATE = "indeterminate"
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +108,18 @@ class ActuatorRequirement:
         if self.relation is Relation.AT_MOST:
             return value <= self.threshold
         return value >= self.threshold
+
+    def evaluate(self, candidate: Mapping[str, float]) -> Verdict:
+        """Veredito de tres valores para um candidato.
+
+        Parametro ausente devolve ``INDETERMINATE``, nao ``VIOLATED``: o sistema
+        fisico nao necessariamente falha, mas a conclusao nao e demonstravel.
+        """
+        if self.parameter not in candidate:
+            return Verdict.INDETERMINATE
+        if self.satisfied_by(candidate[self.parameter]):
+            return Verdict.SATISFIED
+        return Verdict.VIOLATED
 
     def as_text(self) -> str:
         return f"{self.parameter} {self.relation.symbol} {self.threshold:g} {self.unit}"
@@ -143,11 +174,44 @@ class AdmissibleRegion:
         return True
 
     def unmet_by(self, candidate: Mapping[str, float]) -> tuple[ActuatorRequirement, ...]:
-        """Quais condicoes o candidato nao atende, para diagnostico."""
-        return tuple(
-            r
-            for r in self.requirements
-            if r.parameter not in candidate or not r.satisfied_by(candidate[r.parameter])
+        """Quais condicoes o candidato nao atende, violadas e indeterminadas juntas.
+
+        Para o relatorio use :meth:`evaluate`, que separa as duas.
+        """
+        return tuple(r for r in self.requirements if r.evaluate(candidate) is not Verdict.SATISFIED)
+
+    def violated_by(self, candidate: Mapping[str, float]) -> tuple[ActuatorRequirement, ...]:
+        """Condicoes que o candidato **fura**. Aqui o modelo esta dizendo nao."""
+        return tuple(r for r in self.requirements if r.evaluate(candidate) is Verdict.VIOLATED)
+
+    def indeterminate_for(self, candidate: Mapping[str, float]) -> tuple[ActuatorRequirement, ...]:
+        """Condicoes que o candidato **nao permite avaliar**, por parametro ausente.
+
+        Aqui o modelo nao esta dizendo nao. Esta dizendo que nao da para concluir.
+        """
+        return tuple(r for r in self.requirements if r.evaluate(candidate) is Verdict.INDETERMINATE)
+
+    def evaluate(self, candidate: Mapping[str, float]) -> RegionVerdict:
+        """Veredito completo, com as tres classes separadas."""
+        satisfeitos: list[ActuatorRequirement] = []
+        violados: list[ActuatorRequirement] = []
+        indeterminados: list[ActuatorRequirement] = []
+
+        for requirement in self.requirements:
+            veredito = requirement.evaluate(candidate)
+            if veredito is Verdict.SATISFIED:
+                satisfeitos.append(requirement)
+            elif veredito is Verdict.VIOLATED:
+                violados.append(requirement)
+            else:
+                indeterminados.append(requirement)
+
+        return RegionVerdict(
+            scenario=self.scenario,
+            status=self.status,
+            satisfied=tuple(satisfeitos),
+            violated=tuple(violados),
+            indeterminate=tuple(indeterminados),
         )
 
     def as_specification(self) -> str:
@@ -162,6 +226,75 @@ class AdmissibleRegion:
         ]
         linhas.extend(f"  {r.as_text()}" for r in self.requirements)
         texto = "\n".join(linhas)
+        marcado = self.status.stamped(texto)
+        assert_stamped(marcado, self.status)
+        return marcado
+
+
+@dataclass(frozen=True, slots=True)
+class RegionVerdict:
+    """Resultado de avaliar um candidato, com as tres classes separadas.
+
+    A separacao entre violado e indeterminado **sobrevive ate o relatorio**. Fundir
+    as duas faria uma lacuna de evidencia aparecer como reprovacao do conceito.
+    """
+
+    scenario: str
+    status: ModelStatus
+    satisfied: tuple[ActuatorRequirement, ...]
+    violated: tuple[ActuatorRequirement, ...]
+    indeterminate: tuple[ActuatorRequirement, ...]
+
+    @property
+    def is_satisfied(self) -> bool:
+        """Todas as condicoes demonstradas. Indeterminado **nao** conta como sim."""
+        return not self.violated and not self.indeterminate
+
+    @property
+    def is_demonstrable(self) -> bool:
+        """Se todo requisito pode ser avaliado sob este candidato.
+
+        Quando falso, um veredito negativo nao e conclusao sobre o conceito: e falta
+        de parametro.
+        """
+        return not self.indeterminate
+
+    @property
+    def verdict(self) -> Verdict:
+        """O veredito agregado, no mesmo vocabulario de tres valores.
+
+        Violacao tem precedencia sobre indeterminacao: se ja ha condicao furada, o
+        modelo diz nao mesmo que outra condicao seja inavaliavel.
+        """
+        if self.violated:
+            return Verdict.VIOLATED
+        if self.indeterminate:
+            return Verdict.INDETERMINATE
+        return Verdict.SATISFIED
+
+    def as_report(self) -> str:
+        """Texto para o relatorio, marcado e com a distincao preservada."""
+        linhas = [f"Cenario {self.scenario!r}: veredito {self.verdict.value}.", ""]
+
+        if self.satisfied:
+            linhas.append("Demonstradas:")
+            linhas.extend(f"  {r.as_text()}" for r in self.satisfied)
+            linhas.append("")
+
+        if self.violated:
+            linhas.append("Violadas, o modelo diz nao:")
+            linhas.extend(f"  {r.as_text()}" for r in self.violated)
+            linhas.append("")
+
+        if self.indeterminate:
+            linhas.append(
+                "Nao demonstraveis sob este candidato, parametro ausente. "
+                "Isto NAO e reprovacao, e falta de evidencia:"
+            )
+            linhas.extend(f"  {r.as_text()}  [parametro ausente]" for r in self.indeterminate)
+            linhas.append("")
+
+        texto = "\n".join(linhas).rstrip()
         marcado = self.status.stamped(texto)
         assert_stamped(marcado, self.status)
         return marcado

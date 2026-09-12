@@ -146,6 +146,42 @@ Implementado em `analysis/requirements.py`, com `ActuatorRequirement` e `Admissi
 requisito sem `conditioned_on` e **recusado**: condicao sem o contexto em que foi obtida nao e
 interpretavel.
 
+## ⚠ Violado nao e o mesmo que indeterminado
+
+Um booleano esconde a diferenca que mais importa quando sete de oito grupos de parametro nao tem
+dado.
+
+| Veredito | O que o modelo esta dizendo |
+|---|---|
+| `SATISFIED` | o candidato atende a condicao |
+| `VIOLATED` | **nao**: o candidato existe e fura o limite |
+| `INDETERMINATE` | **nao da para concluir**: falta o parametro |
+
+Formalmente, a satisfacao nao e avaliavel quando falta um elemento necessario:
+
+```
+satisfaz(candidato, Theta) = falso   se existe theta_j necessario e ausente
+```
+
+**Nao porque o sistema fisico necessariamente falha**, mas porque a conclusao nao e demonstravel sob
+aquele candidato. Fundir os dois transforma lacuna de evidencia em veredito negativo, que e o
+espelho exato do erro que o carimbo bloqueia na outra direcao.
+
+`RegionVerdict` separa as tres classes e **a distincao sobrevive ate o relatorio**:
+
+```
+Violadas, o modelo diz nao:
+  Tdot_up_max >= 900 N/s
+
+Nao demonstraveis sob este candidato, parametro ausente.
+Isto NAO e reprovacao, e falta de evidencia:
+  eta_inst >= 0.8 -  [parametro ausente]
+```
+
+`is_satisfied` exige as duas listas vazias, porque indeterminado nao conta como sim.
+`is_demonstrable` diz se um veredito negativo e conclusao ou falta de parametro.
+Violacao tem precedencia: se ja ha condicao furada, o modelo diz nao mesmo com outra inavaliavel.
+
 ## ⚠ Risco epistemologico: a familia nao pode virar medicao decorativa
 
 O risco restante nao e fisico. E que a familia parametrica nao validada ganhe **aparencia de

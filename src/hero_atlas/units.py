@@ -30,6 +30,7 @@ __all__ = [
     "from_si",
     "convert",
     "require_dimension",
+    "normalized_thrust_rate",
     "si_unit_for",
     "known_units",
 ]
@@ -116,6 +117,9 @@ _UNITS: Final[dict[str, UnitSpec]] = {
     "N/s": UnitSpec("force_rate", 1.0),
     "kN/s": UnitSpec("force_rate", 1e3),
     "kgf/s": UnitSpec("force_rate", KGF_TO_N),
+    # taxa normalizada: derivada DECLARADA, nunca a grandeza fisica do deck.
+    # Dimensao propria para nao ser confundida com frequencia.
+    "1/s": UnitSpec("normalized_rate", 1.0),
     # torque
     "N*m": UnitSpec("torque", 1.0),
     "N.m": UnitSpec("torque", 1.0),
@@ -205,6 +209,7 @@ _SI_UNIT_FOR: Final[dict[str, str]] = {
     "time": "s",
     "force": "N",
     "force_rate": "N/s",
+    "normalized_rate": "1/s",
     "torque": "N*m",
     "angular_momentum": "N*m*s",
     "angle": "rad",
@@ -274,6 +279,21 @@ def convert(value: float, src: str, dst: str) -> float:
     if d_src != d_dst:
         raise DimensionError(f"nao da para converter {src!r} ({d_src}) para {dst!r} ({d_dst})")
     return from_si(to_si(value, src), dst)
+
+
+def normalized_thrust_rate(rate_N_s: float, thrust_reference_N: float) -> float:
+    """Taxa de empuxo normalizada, em 1/s, com a referencia explicita no argumento.
+
+        lambda_dot_T = Tdot / T_ref
+
+    Existe como **derivada declarada**, para comparar arquiteturas de tamanhos
+    diferentes. A grandeza fisica do deck de propulsao continua sendo `N/s`, nunca
+    esta. Uma taxa normalizada sem a referencia ao lado nao e interpretavel, e por
+    isso a referencia e argumento obrigatorio em vez de constante de modulo.
+    """
+    if not thrust_reference_N > 0.0:
+        raise ValueError(f"thrust_reference_N deve ser positivo, recebeu {thrust_reference_N!r}")
+    return rate_N_s / thrust_reference_N
 
 
 def require_dimension(unit: str, expected: str) -> None:
