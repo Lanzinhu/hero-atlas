@@ -2,7 +2,7 @@
 tags: [marco]
 marco: 3
 prazo: 2 semanas
-estado: aguardando
+estado: parcial
 ---
 
 # Marco 3 - Dinamica

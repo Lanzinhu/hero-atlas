@@ -29,19 +29,37 @@ Sem hardware. Custo zero. Python.
 
 ## Estado do projeto
 
-**Marco 2 entregue:** trim vetorial e autoridade estática.
-**Marco 3 em andamento:** corpo rígido pronto, atuador com atraso e rampa pronto, laço fechado não.
-**Próximo:** integrar atuador, eventos e dinâmica no mesmo laço.
+**Onde estamos: marco 3, na metade.** As duas peças do marco existem e funcionam
+isoladas. O que falta é a que as junta.
 
 | Marco | Entrega | Estado |
 |---|---|---|
 | 0 | Unidades, procedência, agregação de massa, eventos, telemetria | entregue |
 | 1 | Envelope de massa e empuxo, autonomia | entregue |
-| 2 | Trim com momento do peso, mapa de autoridade | entregue |
-| 3 | Dinâmica seis graus de liberdade | corpo rígido e atuador prontos, laço fechado não |
 | 1b | Energia por missão, elétrico contra combustível | entregue |
+| 2 | Trim com momento do peso, mapa de autoridade | entregue |
+| 3 | Dinâmica seis graus de liberdade | **metade**: peças prontas, laço fechado não |
+| 4 | Controlador, alocação por efetividade prevista | não começou |
 
-546 testes; o portão de lint e formatação cobre `src/`, `tests/`, `tools/` e `noxfile.py`.
+Dentro do marco 3:
+
+| Peça | Estado |
+|---|---|
+| Corpo rígido seis graus de liberdade | pronto, com Dzhanibekov e equivariância |
+| Atuador com atraso, constante de tempo, rampa e saturação | pronto, forma fechada conferida |
+| Agenda de eventos | pronto desde o marco 0 |
+| **Os três no mesmo passo de integração** | **não** |
+
+Três experimentos rodaram em cima do que já existe, todos **estáticos**:
+
+| Experimento | Pergunta | Resultado |
+|---|---|---|
+| 1 | quais geometrias equilibram | 9 de 11 eliminadas |
+| 2 | elétrico ou combustível, mesma massa embarcada | elétrico satura em 2,98 min |
+| 3 | funil de seis famílias por oito filtros | 2 sobrevivem, 2 não julgadas |
+
+565 testes; o portão de lint e formatação cobre `src/`, `tests/`, `tools/` e `noxfile.py`,
+e a sessão `resultados` do nox confere que `docs/resultados/` bate com o código.
 
 ## A pergunta
 
@@ -160,6 +178,7 @@ são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
 | `geometria-detalhe.txt` | os sete bocais com posição, direção e limites; a matriz de alocação inteira; valores singulares; janela de centro de massa; e o trim nos dois objetivos, bocal a bocal |
 | `experimento-1-geometria.txt` | as onze arquiteturas, com posto, janelas, rolagem pura e tolerância a falha única |
 | `experimento-2-energia.txt` | elétrico contra combustível por massa embarcada, os dois tetos de massa e a potência de barramento |
+| `experimento-3-funil.txt` | seis famílias de arquitetura por oito filtros, com o motivo de morte de cada uma |
 
 ```bash
 ./.venv/Scripts/python.exe tools/refresh_results.py
