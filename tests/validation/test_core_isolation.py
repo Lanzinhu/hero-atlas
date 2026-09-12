@@ -36,7 +36,40 @@ dizer por que existe.
 """
 
 
-def _descobrir_modulos_do_nucleo() -> list[str]:
+EXTENSAO_ELEGIVEL = ".py"
+"""Unica extensao descoberta.
+
+``.pyi`` fica de fora por decisao declarada: stub nao e importado em tempo de
+execucao e portanto nao pode violar isolamento de importacao. Se um stub aparecer,
+o teste de politica avisa em vez de ignorar em silencio.
+"""
+
+NOMES_NAO_IMPORTAVEIS = frozenset({"__main__"})
+"""Modulos varridos estaticamente mas **nunca importados** pelo teste.
+
+⚠ Importar ``__main__`` **executa o programa**. Um ponto de entrada de linha de
+comando adicionado ao pacote faria a suite rodar a aplicacao como efeito colateral
+da varredura. Ele continua sendo varrido, porque um import pesado ali viola o
+isolamento do mesmo jeito; so nao e importado.
+"""
+
+NOMES_PROIBIDOS_NO_PACOTE = frozenset({"conftest", "test_"})
+"""Arquivo de teste sob o pacote e violacao de estrutura, nao caso de borda.
+
+Falha ruidosamente em vez de incluir ou excluir por conta propria.
+"""
+
+
+@dataclasses.dataclass(frozen=True)
+class ModuloDoNucleo:
+    """Um modulo descoberto, com a politica ja aplicada."""
+
+    nome: str
+    caminho: pathlib.Path
+    importavel: bool
+
+
+def _descobrir_modulos_do_nucleo() -> list[ModuloDoNucleo]:
     """Deriva a lista percorrendo o pacote, em vez de mante-la a mao.
 
     ⚠ A lista era manual e **um modulo novo ficou de fora sem ninguem notar**. Lista
@@ -48,11 +81,23 @@ def _descobrir_modulos_do_nucleo() -> list[str]:
 
     1. a varredura cobre cada modulo listado
     2. a lista contem todos os modulos que de fato pertencem ao nucleo
+
+    A politica de elegibilidade e **explicita e testada**, porque convencoes novas
+    aparecem depois e a descoberta precisa continuar deterministica:
+
+    | Caso | Decisao |
+    |---|---|
+    | ``.py`` | descoberto |
+    | ``.pyi`` | fora: stub nao e importado em execucao |
+    | ``__main__.py`` | varrido, **nunca importado**: importar executa |
+    | ``_privado.py`` | descoberto: privacidade e questao de API, nao de isolamento |
+    | ``conftest.py``, ``test_*.py`` | proibido sob o pacote, falha ruidosa |
+    | pacote de namespace | proibido, falha ruidosa: nome pode nao importar |
     """
     raiz = pathlib.Path(hero_atlas.__file__).parent
-    modulos: list[str] = []
+    modulos: list[ModuloDoNucleo] = []
 
-    for caminho in sorted(raiz.rglob("*.py")):
+    for caminho in sorted(raiz.rglob(f"*{EXTENSAO_ELEGIVEL}")):
         relativo = caminho.relative_to(raiz)
         partes = (
             relativo.parent.parts
@@ -60,13 +105,26 @@ def _descobrir_modulos_do_nucleo() -> list[str]:
             else (*relativo.parent.parts, relativo.stem)
         )
         nome = ".".join(("hero_atlas", *partes))
-        if nome not in FORA_DO_NUCLEO:
-            modulos.append(nome)
+        if nome in FORA_DO_NUCLEO:
+            continue
+        modulos.append(
+            ModuloDoNucleo(
+                nome=nome,
+                caminho=caminho,
+                importavel=caminho.stem not in NOMES_NAO_IMPORTAVEIS,
+            )
+        )
 
     return modulos
 
 
-MODULOS_DO_NUCLEO = _descobrir_modulos_do_nucleo()
+_DESCOBERTOS = _descobrir_modulos_do_nucleo()
+
+MODULOS_DO_NUCLEO = [m.nome for m in _DESCOBERTOS]
+"""Tudo que a varredura estatica cobre, inclusive o que nao pode ser importado."""
+
+MODULOS_IMPORTAVEIS = [m.nome for m in _DESCOBERTOS if m.importavel]
+"""Subconjunto seguro de importar dentro da suite."""
 
 MODULOS_PESADOS = [
     "pandas",
@@ -81,7 +139,7 @@ MODULOS_PESADOS = [
 ]
 
 
-@pytest.mark.parametrize("modulo", MODULOS_DO_NUCLEO)
+@pytest.mark.parametrize("modulo", MODULOS_IMPORTAVEIS)
 def test_modulo_do_nucleo_importa(modulo: str):
     importlib.import_module(modulo)
 
@@ -206,13 +264,19 @@ def _sites_de_import_no_carregamento(source: str) -> list[ImportSite]:
     return sites
 
 
+_CAMINHO_POR_NOME = {m.nome: m.caminho for m in _DESCOBERTOS}
+
+
 def _fonte_do_modulo(modulo: str) -> str:
-    mod = importlib.import_module(modulo)
-    origem = getattr(mod, "__file__", None)
-    if origem is None:  # pragma: no cover
-        pytest.skip(f"{modulo} sem arquivo de origem")
-    with open(origem, encoding="utf-8") as handle:
-        return handle.read()
+    """Le o arquivo pelo caminho descoberto, sem importar.
+
+    ⚠ Antes isto importava o modulo para achar o arquivo. Com ``__main__`` no
+    pacote, a propria varredura estatica executaria o programa.
+    """
+    caminho = _CAMINHO_POR_NOME.get(modulo)
+    if caminho is None:  # pragma: no cover
+        pytest.skip(f"{modulo} sem caminho descoberto")
+    return caminho.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("modulo", MODULOS_DO_NUCLEO)
@@ -373,3 +437,84 @@ def test_modulos_criados_recentemente_estao_cobertos():
         "hero_atlas.analysis.requirements",
     ):
         assert modulo in MODULOS_DO_NUCLEO
+
+
+# --------------------------------------------------------------------------- #
+# Politica de elegibilidade da descoberta, explicita e testada
+# --------------------------------------------------------------------------- #
+
+
+def test_nenhum_arquivo_de_teste_sob_o_pacote():
+    """Arquivo de teste dentro do nucleo e violacao de estrutura, nao caso de borda."""
+    raiz = pathlib.Path(hero_atlas.__file__).parent
+    intrusos = [
+        c.relative_to(raiz).as_posix()
+        for c in raiz.rglob("*.py")
+        if c.stem == "conftest" or c.stem.startswith("test_")
+    ]
+
+    assert not intrusos, (
+        f"arquivo de teste sob o pacote do nucleo: {intrusos}. "
+        "Testes moram em tests/, nao em src/hero_atlas/."
+    )
+
+
+def test_todo_diretorio_com_codigo_e_pacote_de_verdade():
+    """Pacote de namespace quebra a derivacao de nome de modulo.
+
+    Sem ``__init__.py`` o nome derivado do caminho pode nao ser importavel, e a
+    varredura passaria a falhar por motivo errado.
+    """
+    raiz = pathlib.Path(hero_atlas.__file__).parent
+    sem_init = [
+        d.relative_to(raiz).as_posix()
+        for d in raiz.rglob("*")
+        if d.is_dir() and any(d.glob("*.py")) and not (d / "__init__.py").exists()
+    ]
+
+    assert not sem_init, (
+        f"diretorio com codigo e sem __init__.py: {sem_init}. "
+        "A derivacao de nome de modulo assume pacote regular."
+    )
+
+
+def test_stubs_ficam_fora_da_descoberta_por_decisao_declarada():
+    """Se um stub aparecer, este teste avisa em vez de a descoberta ignorar calada."""
+    raiz = pathlib.Path(hero_atlas.__file__).parent
+    stubs = [c.relative_to(raiz).as_posix() for c in raiz.rglob("*.pyi")]
+
+    assert not stubs, (
+        f"stubs encontrados: {stubs}. A descoberta so cobre {EXTENSAO_ELEGIVEL}. "
+        "Decida explicitamente se stub entra na politica antes de adicionar um."
+    )
+
+
+def test_main_seria_varrido_mas_nunca_importado():
+    """Regra viva mesmo sem __main__ existir hoje: e guarda contra deriva futura.
+
+    Importar __main__ executa o programa. A varredura estatica continua cobrindo,
+    porque um import pesado ali viola o isolamento do mesmo jeito.
+    """
+    assert "__main__" in NOMES_NAO_IMPORTAVEIS
+
+    ficticio = ModuloDoNucleo(
+        nome="hero_atlas.__main__",
+        caminho=pathlib.Path("src/hero_atlas/__main__.py"),
+        importavel="__main__" not in NOMES_NAO_IMPORTAVEIS,
+    )
+    assert ficticio.importavel is False
+
+
+def test_modulo_privado_entra_na_descoberta():
+    """Privacidade e questao de API. Isolamento de import nao liga para sublinhado."""
+    ficticio = ModuloDoNucleo(
+        nome="hero_atlas._interno",
+        caminho=pathlib.Path("src/hero_atlas/_interno.py"),
+        importavel="_interno" not in NOMES_NAO_IMPORTAVEIS,
+    )
+    assert ficticio.importavel is True
+
+
+def test_importaveis_e_subconjunto_do_varrido():
+    assert set(MODULOS_IMPORTAVEIS) <= set(MODULOS_DO_NUCLEO)
+    assert MODULOS_IMPORTAVEIS  # nao pode ficar vazio

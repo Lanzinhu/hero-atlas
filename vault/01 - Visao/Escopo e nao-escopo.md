@@ -106,5 +106,22 @@ Ela era manual e **um modulo novo ficou de fora sem ninguem notar**. Agora a cob
 percorrer o pacote, com uma allowlist de excecoes que hoje esta vazia e cujas entradas futuras
 precisam de justificativa. Um modulo entra na cobertura pelo ato de existir.
 
+A politica de elegibilidade e **explicita e testada**, porque convencao nova aparece depois e a
+descoberta precisa continuar deterministica:
+
+| Caso | Decisao | Por que |
+|---|---|---|
+| `.py` | descoberto | — |
+| `.pyi` | fora | stub nao e importado em execucao, entao nao viola isolamento de import |
+| `__main__.py` | **varrido, nunca importado** | importar executa o programa dentro da suite |
+| `_privado.py` | descoberto | privacidade e questao de API, nao de isolamento |
+| `conftest.py`, `test_*.py` | proibido sob o pacote | falha ruidosa: teste mora em `tests/` |
+| pacote de namespace | proibido | sem `__init__.py` o nome derivado pode nao importar |
+
+⚠ O caso de ponto de entrada e o unico perigoso de verdade, e por causa dele a varredura passou a
+**ler o arquivo pelo caminho descoberto em vez de importar o modulo**. Antes ela importava so para
+achar o arquivo, o que executaria o programa no dia em que alguem adicionasse uma linha de comando
+ao pacote.
+
 O nome computado falha em vez de passar porque aprovar por nao conseguir decidir seria o mesmo erro
 de categoria que [[Violado nao e indeterminado]] descreve: ausencia virando aprovacao.
