@@ -19,10 +19,16 @@ from .envelope import (
     thrust_effective_required_N,
 )
 from .requirements import ActuatorRequirement, AdmissibleRegion, Relation
+from .trim import CaptureAssessment, TrimSolution, TrimTarget, assess_capture, solve_trim
 
 __all__ = [
     "ActuatorRequirement",
     "AdmissibleRegion",
+    "CaptureAssessment",
+    "TrimSolution",
+    "TrimTarget",
+    "assess_capture",
+    "solve_trim",
     "InstallationLosses",
     "MassBudget",
     "MassClosureResult",
