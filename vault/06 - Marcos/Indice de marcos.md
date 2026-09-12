@@ -11,8 +11,8 @@ atualizado: 2026-09-11
 
 | # | Marco | Pergunta respondida | Prazo | Estado |
 |---|---|---|---|---|
-| 0 | [[Marco 0 - Fundacao]] | A fundacao esta correta? | 1 semana | **em andamento** |
-| 1 | [[Marco 1 - Envelope]] | O conceito fecha na conta? | 1 semana | aguardando |
+| 0 | [[Marco 0 - Fundacao]] | A fundacao esta correta? | 1 semana | **entregue** |
+| 1 | [[Marco 1 - Envelope]] | O conceito fecha na conta? | 1 semana | **entregue** |
 | 2 | [[Marco 2 - Trim e autoridade]] | Os atuadores produzem o necessario, e em quanto tempo? | 1 semana | aguardando |
 | 3 | [[Marco 3 - Dinamica]] | O integrador esta correto e os eventos caem no instante certo? | 2 semanas | aguardando |
 | 4 | [[Marco 4 - Pairado]] | Paira, e quando nao paira, por que? | 2 semanas | aguardando |

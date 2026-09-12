@@ -46,7 +46,16 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "NPY"]
-ignore = ["N803", "N806"]  # nomes matematicos em maiuscula: R, I, W, Q
+# O projeto EXIGE sufixo de unidade em nome publico (thrust_N, omega_rad_s,
+# delta_isa_K). Ver vault/03 - Regras/Regras de unidades.md. As regras de
+# capitalizacao do pep8 brigam com isso, e a convencao do projeto vence: sufixo de
+# unidade errado ja custou uma rodada inteira de revisao neste projeto.
+ignore = [
+    "N802",  # funcao com sufixo de unidade: thrust_effective_required_N
+    "N803",  # argumento matematico em maiuscula: R, I, W, Q
+    "N806",  # variavel matematica em maiuscula
+    "N815",  # campo de classe com sufixo de unidade: pressure_Pa, delta_isa_K
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501"]

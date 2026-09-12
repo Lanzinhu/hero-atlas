@@ -65,17 +65,26 @@ G0: Final[float] = 9.80665
 KGF_TO_N: Final[float] = 9.80665
 LBF_TO_N: Final[float] = 4.4482216152605
 
-RHO_SEA_LEVEL_ISA: Final[float] = 1.225
-"""Densidade do ar ao nivel do mar, ISA [kg/m^3]."""
-
-R_DRY_AIR: Final[float] = 287.05
-"""Constante especifica do ar seco [J/(kg*K)]."""
+R_DRY_AIR: Final[float] = 287.05287
+"""Constante especifica do ar seco [J/(kg*K)], valor da atmosfera padrao."""
 
 T_SEA_LEVEL_ISA: Final[float] = 288.15
 """Temperatura ao nivel do mar, ISA [K]."""
 
 P_SEA_LEVEL_ISA: Final[float] = 101325.0
 """Pressao ao nivel do mar, ISA [Pa]."""
+
+RHO_SEA_LEVEL_ISA: Final[float] = P_SEA_LEVEL_ISA / (R_DRY_AIR * T_SEA_LEVEL_ISA)
+"""Densidade do ar ao nivel do mar, ISA [kg/m^3].
+
+⚠ **Derivada, nao tabelada.** O valor convencional 1,225 e arredondado, e usa-lo
+como constante independente faz o modelo discordar de si mesmo em cerca de nove
+partes por milhao: o cenario de referencia deixaria de ter razao de densidade
+exatamente 1,0, que e uma propriedade que o codigo afirma.
+
+Confere com 1,225 em quatro algarismos significativos, que e a precisao com que a
+norma publica o valor.
+"""
 
 
 # --------------------------------------------------------------------------- #

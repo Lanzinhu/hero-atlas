@@ -14,7 +14,7 @@ Sem hardware. Custo zero. Python.
 ## Estado atual
 
 - Plano: **revisao 7, fechada para implementacao**
-- Fase: **[[Marco 0 - Fundacao]]** em andamento
+- Fase: [[Marco 0 - Fundacao]] e [[Marco 1 - Envelope]] **entregues**. Proximo: [[Marco 2 - Trim e autoridade]]
 - Decisoes bloqueando: nenhuma. Ver [[Decisoes em aberto]]
 
 ## Por onde entrar

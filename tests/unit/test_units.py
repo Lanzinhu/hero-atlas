@@ -169,3 +169,15 @@ def test_kind_cai_na_dimensao_quando_nao_declarado():
     from hero_atlas.units import kind_of
 
     assert kind_of("kg") == dimension_of("kg") == "mass"
+
+
+def test_densidade_ao_nivel_do_mar_e_autoconsistente():
+    """⚠ Derivada, nao tabelada.
+
+    Usar 1,225 como constante independente faz o modelo discordar de si mesmo, e o
+    cenario de referencia deixa de ter razao de densidade exatamente 1,0.
+    """
+    from hero_atlas.units import P_SEA_LEVEL_ISA, R_DRY_AIR, RHO_SEA_LEVEL_ISA, T_SEA_LEVEL_ISA
+
+    assert RHO_SEA_LEVEL_ISA == P_SEA_LEVEL_ISA / (R_DRY_AIR * T_SEA_LEVEL_ISA)
+    assert pytest.approx(1.225, abs=5e-4) == RHO_SEA_LEVEL_ISA, "tem que bater com a norma"
