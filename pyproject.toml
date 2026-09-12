@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hero-atlas"
+version = "0.1.0"
+description = "Laboratorio virtual de dinamica e controle para um traje de propulsao pessoal"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+# O nucleo importa APENAS estas. Ferramentas pesadas produzem decks, nunca sao
+# importadas pelo nucleo. Ver vault/01 - Visao/Escopo e nao-escopo.md
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+data = ["pandas>=2.2", "pyarrow"]
+cli = ["typer", "rich"]
+control = ["control>=0.10", "casadi>=3.6", "osqp"]
+dev = ["pytest>=8", "pytest-cov", "hypothesis", "ruff", "nox"]
+# Instalar SO no marco 10. Nunca no caminho de import do nucleo.
+heavy = ["om-pycycle", "openmdao", "jsbsim"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hero_atlas"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "unit: teste isolado, menos de 0,1 s",
+    "validation: caso analitico ou benchmark de referencia",
+    "regression: traco dourado congelado",
+    "slow: campanha ou varredura",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "NPY"]
+ignore = ["N803", "N806"]  # nomes matematicos em maiuscula: R, I, W, Q
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]

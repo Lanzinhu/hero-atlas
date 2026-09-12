@@ -1,0 +1,45 @@
+{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": true,
+  "showAttachments": false,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:\"02 - Decisoes\"",
+      "color": {
+        "a": 1,
+        "rgb": 14701131
+      }
+    },
+    {
+      "query": "path:\"03 - Regras\"",
+      "color": {
+        "a": 1,
+        "rgb": 5431378
+      }
+    },
+    {
+      "query": "path:\"04 - Fisica\"",
+      "color": {
+        "a": 1,
+        "rgb": 5395026
+      }
+    },
+    {
+      "query": "path:\"06 - Marcos\"",
+      "color": {
+        "a": 1,
+        "rgb": 11621088
+      }
+    },
+    {
+      "query": "path:\"07 - Diario\"",
+      "color": {
+        "a": 1,
+        "rgb": 8945834
+      }
+    }
+  ],
+  "scale": 1
+}

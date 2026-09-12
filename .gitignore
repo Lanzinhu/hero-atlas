@@ -1,0 +1,29 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.nox/
+
+# execucoes: reproduziveis a partir do config, nao versionadas
+runs/
+
+# Obsidian: config de workspace e local, o resto do vault e versionado
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
+vault/.trash/
+
+# FreeCAD
+*.FCStd1
+
+# OpenFOAM
+processor*/
+
+# artefatos de sessoes de ferramenta, nao sao fonte do projeto
+_claude/
+.playwright-mcp/
