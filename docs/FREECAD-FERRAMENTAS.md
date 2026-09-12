@@ -10,15 +10,29 @@
 |---|---|
 | Rodar o Python do FreeCAD sem interface | Clicar na interface |
 | Criar e salvar documentos `.FCStd` | Ver a sua tela |
-| Ler um documento seu e medir tudo | Reagir ao que você faz na hora |
-| Calcular massa, centro e inércia | Desenhar com o mouse |
-| Instalar macros que viram comandos no seu menu | Instalar addons pela loja |
+| Ler um documento seu e medir tudo | Usar o mouse |
+| Calcular massa, centro e inércia | Instalar addons pela loja |
+| Instalar macros que viram comandos no seu menu | Ver o que você faz, sem você me contar |
+| **Operar o FreeCAD aberto, com a ponte ligada** | Ligar a ponte sozinho |
 
-O jeito que funciona é este: eu escrevo macro ou script, instalo na sua pasta, e você
-roda pelo menu **Macro**. Já instalei três, e elas estão descritas abaixo.
+Dois modos, e o segundo é novo.
 
-⚠ Não há integração ao vivo. Se você mexer no modelo, eu só vejo depois de você salvar
-e eu abrir o arquivo.
+**Modo arquivo.** Eu escrevo macro ou script, instalo na sua pasta, você roda pelo menu
+**Macro**. É o modo padrão e não exige nada de você além de clicar.
+
+**Modo ponte.** Você liga a macro `HeroAtlas_Ponte` e eu passo a operar o documento
+aberto: criar objeto, medir, conferir, corrigir posição. Descrito na seção 2b.
+
+### Sobre o depurador do VS Code
+
+A janela **Attach to Remote Debugger** que aparece no FreeCAD não serve para me
+conectar. Ela fala o protocolo de depuração, feito para uma pessoa colocar ponto de
+parada e inspecionar variável passo a passo. Eu não tenho cliente desse protocolo, e
+mesmo tendo, depurador serve para **observar** código rodando, não para pilotar um
+programa.
+
+A ponte da seção 2b faz o que você queria: conexão ao vivo, comando vai, resultado
+volta.
 
 ---
 
@@ -67,6 +81,34 @@ par0_dir         294 mm  159 graus         ok           ok
 
 Testada dos dois lados: aprova o modelo de referência e reprova um modelo com três
 erros plantados de propósito.
+
+### `HeroAtlas_Ponte`
+
+A conexão ao vivo. Ligue pelo menu Macro; para desligar, rode de novo.
+
+```bash
+./.venv/Scripts/python.exe tools/ponte.py --estado
+./.venv/Scripts/python.exe tools/ponte.py "print(doc.Name)"
+```
+
+Do meu lado o escopo já vem com `App`, `Gui` e `doc`, que é o documento ativo.
+
+**O que isso significa, em português claro.** Enquanto a ponte estiver ligada, qualquer
+programa **desta máquina** que conecte na porta 8765 executa Python dentro do seu
+FreeCAD. Não há senha.
+
+Três coisas limitam isso:
+
+| Limite | Efeito |
+|---|---|
+| Endereço `127.0.0.1` | nada vindo da rede alcança, só esta máquina |
+| Você liga | não sobe sozinha, e morre quando o FreeCAD fecha |
+| Tudo é impresso antes de executar | você vê no console o que está sendo feito |
+
+⚠ **Desligue quando não estiver colaborando.** Não é coisa para deixar ligada.
+
+Testada de ponta a ponta: cria documento, mede sólido, captura erro sem derrubar o
+servidor, sobrevive ao erro seguinte, e devolve acentuação e saída grande sem corromper.
 
 ### `HeroAtlas_Exportar`
 

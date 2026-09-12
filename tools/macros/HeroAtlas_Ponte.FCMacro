@@ -1,0 +1,182 @@
+"""Ponte ao vivo: deixa o assistente operar o FreeCAD aberto, por socket local.
+
+Macro do FreeCAD. Menu Macro, executar. Para parar, rode de novo.
+
+COMO FUNCIONA
+
+    Abre um servidor em 127.0.0.1:8765 e escuta com um temporizador do Qt, para a
+    interface nao travar. Cada pedido que chega e executado NA LINHA PRINCIPAL, que e
+    onde o FreeCAD permite mexer em documento.
+
+O QUE ISSO SIGNIFICA, EM PORTUGUES CLARO
+
+    Enquanto a ponte estiver ligada, qualquer programa desta maquina que conecte na
+    porta 8765 executa Python dentro do seu FreeCAD. Nao ha senha.
+
+    A porta e 127.0.0.1, ou seja **so esta maquina**: nada vindo da rede alcanca. E a
+    ponte so existe enquanto voce a liga, e morre quando o FreeCAD fecha.
+
+    Toda linha recebida e IMPRESSA no console do FreeCAD antes de executar, entao voce
+    ve tudo o que esta sendo feito. Se aparecer algo que voce nao pediu, rode a macro de
+    novo para desligar.
+
+ATENCAO: desligue quando nao estiver colaborando. Nao e uma coisa para deixar ligada.
+"""
+
+import io
+import json
+import socket
+import traceback
+
+import FreeCAD as App
+
+HOST = "127.0.0.1"
+PORT = 8765
+INTERVALO_MS = 120
+LIMITE_BYTES = 1_000_000
+
+_CHAVE = "_hero_atlas_ponte"
+
+
+def _desliga():
+    """Fecha o que estiver aberto de uma execucao anterior."""
+    estado = getattr(App, _CHAVE, None)
+    if not estado:
+        return False
+    try:
+        estado["timer"].stop()
+    except Exception:
+        pass
+    try:
+        estado["servidor"].close()
+    except Exception:
+        pass
+    delattr(App, _CHAVE)
+    return True
+
+
+def _atende(servidor):
+    """Aceita no maximo uma conexao por disparo, para nao segurar a interface."""
+    try:
+        conexao, _ = servidor.accept()
+    except (BlockingIOError, OSError):
+        return
+
+    try:
+        conexao.settimeout(10.0)
+
+        # protocolo: primeira linha e o tamanho em bytes, depois o codigo
+        cabecalho = b""
+        while not cabecalho.endswith(b"\n"):
+            pedaco = conexao.recv(1)
+            if not pedaco:
+                return
+            cabecalho += pedaco
+            if len(cabecalho) > 32:
+                return
+
+        tamanho = int(cabecalho.decode("ascii").strip())
+        if tamanho > LIMITE_BYTES:
+            conexao.sendall(
+                json.dumps({"ok": False, "erro": "pedido grande demais"}).encode("utf-8")
+            )
+            return
+
+        corpo = b""
+        while len(corpo) < tamanho:
+            pedaco = conexao.recv(min(65536, tamanho - len(corpo)))
+            if not pedaco:
+                return
+            corpo += pedaco
+
+        codigo = corpo.decode("utf-8")
+
+        # ATENCAO: imprime ANTES de executar, para voce ver o que esta acontecendo.
+        print("=" * 66)
+        print("PONTE recebeu:")
+        for linha in codigo.splitlines():
+            print("  | " + linha)
+        print("-" * 66)
+
+        saida = io.StringIO()
+        resposta = {"ok": True}
+        escopo = {
+            "App": App,
+            "FreeCAD": App,
+            "doc": App.ActiveDocument,
+        }
+        try:
+            import FreeCADGui as Gui  # noqa: PLC0415
+
+            escopo["Gui"] = Gui
+            escopo["FreeCADGui"] = Gui
+        except ImportError:
+            pass
+
+        import contextlib  # noqa: PLC0415
+
+        try:
+            with contextlib.redirect_stdout(saida):
+                exec(codigo, escopo)  # noqa: S102
+        except Exception:
+            resposta["ok"] = False
+            resposta["erro"] = traceback.format_exc()
+
+        resposta["saida"] = saida.getvalue()
+        if resposta["ok"]:
+            print(resposta["saida"] or "(sem saida)")
+        else:
+            print("ERRO:")
+            print(resposta["erro"])
+        print("=" * 66)
+
+        conexao.sendall(json.dumps(resposta, ensure_ascii=False).encode("utf-8"))
+    except Exception:
+        print("PONTE: falha ao atender")
+        print(traceback.format_exc())
+    finally:
+        try:
+            conexao.close()
+        except Exception:
+            pass
+
+
+def main():
+    if _desliga():
+        print("PONTE DESLIGADA. Rode de novo para ligar.")
+        return
+
+    from PySide import QtCore  # noqa: PLC0415
+
+    servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        servidor.bind((HOST, PORT))
+    except OSError as erro:
+        print(f"PONTE: nao consegui abrir a porta {PORT}: {erro}")
+        print("Outra instancia pode estar usando. Feche e tente de novo.")
+        servidor.close()
+        return
+    servidor.listen(1)
+    servidor.setblocking(False)
+
+    temporizador = QtCore.QTimer()
+    temporizador.timeout.connect(lambda: _atende(servidor))
+    temporizador.start(INTERVALO_MS)
+
+    setattr(App, _CHAVE, {"servidor": servidor, "timer": temporizador})
+
+    print("=" * 66)
+    print(f"PONTE LIGADA em {HOST}:{PORT}")
+    print()
+    print("Enquanto estiver ligada, qualquer programa DESTA MAQUINA que conecte")
+    print("nesta porta executa Python dentro do FreeCAD. Nao ha senha.")
+    print()
+    print("Nada vindo da rede alcanca: a porta e so 127.0.0.1.")
+    print("Tudo o que chegar aparece aqui neste console antes de executar.")
+    print()
+    print("Para DESLIGAR: rode esta macro de novo.")
+    print("=" * 66)
+
+
+main()
