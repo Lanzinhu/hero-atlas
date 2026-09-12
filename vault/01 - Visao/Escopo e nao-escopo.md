@@ -59,3 +59,31 @@ normalizadas.
 ## Ligacoes
 
 [[MOC - Hero Atlas]] · [[Indice de marcos]]
+
+## ⚠ Isolamento do nucleo: o que o detector cobre
+
+A verificacao em tempo de execucao nao basta. Ela so prova que o caminho executado **nao encontrou**
+biblioteca disponivel, o que e vacuo num ambiente onde pandas, pyarrow e matplotlib nem estao
+instalados.
+
+A varredura estatica por arvore sintatica cobre quatro formas de importacao e decide por escopo:
+
+| Local | Falha? | Motivo |
+|---|---|---|
+| Topo do modulo | sim | executa no import |
+| `try` com `except ImportError` no modulo | sim | ainda **tenta** importar |
+| Corpo de classe | sim | executa no import |
+| `if` em escopo de modulo | sim | pode executar no import |
+| `importlib.import_module("x")` no modulo | sim | importacao dinamica com alvo literal |
+| `__import__("x")` no modulo | sim | idem |
+| Alvo com nome **computado** | sim | falha conservadora: nao da para decidir |
+| Corpo de funcao | nao | preguicoso, e o padrao correto |
+| Corpo de lambda | nao | preguicoso |
+| Corpo de funcao assincrona | nao | preguicoso |
+| Ferramenta fora do nucleo | nao | produtor de deck e isolado |
+
+A regra nao e "ninguem pode ter integracao opcional". E "o nucleo nao tenta importar ferramenta
+pesada ao ser carregado". Adaptador e script fora do nucleo continuam livres.
+
+O nome computado falha em vez de passar porque aprovar por nao conseguir decidir seria o mesmo erro
+de categoria que [[Violado nao e indeterminado]] descreve: ausencia virando aprovacao.

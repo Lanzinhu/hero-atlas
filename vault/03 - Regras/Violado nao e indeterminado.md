@@ -42,6 +42,21 @@ fisica o que so se sabe sobre evidencia.
 As duas primeiras sao vereditos. A terceira e recusada na construcao, porque condicao sem o
 contexto em que foi obtida nao e interpretavel.
 
+## Congelavel nao e o mesmo que aceito
+
+Um campo estava fazendo dois trabalhos. Congelar uma comparacao conclusiva e uma coisa; tratar o
+valor do modelo como concordante com a referencia e outra.
+
+```
+eligible_for_regression  =>  comparacao feita  e  status != INDETERMINATE
+accepted_as_benchmark    =>  status == SATISFIED
+accepted_as_benchmark    =>  eligible_for_regression
+```
+
+Um resultado `VIOLATED` **pode e deve** virar teste que confirma a rejeicao: congelar uma
+discordancia conhecida protege contra regressao silenciosa. Mas nao e benchmark aceito, e chamar de
+elegivel sem qualificar deixava a ambiguidade viva.
+
 ## Historico
 
 O defeito apareceu **duas vezes**, e a segunda foi pior porque foi deixada para tras na primeira

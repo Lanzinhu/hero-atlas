@@ -239,10 +239,22 @@ class AcceptanceResult:
         status: o veredito de tres valores.
         reason: por que, util quando indeterminado.
         numeric_comparison_performed: se a comparacao chegou a ser feita.
-        eligible_for_regression: se este par pode virar teste que quebra o build.
-            Falso sempre que a comparacao nao foi conclusiva.
+        eligible_for_regression: se este par pode virar teste congelado. Verdadeiro
+            para ``SATISFIED`` **e** para ``VIOLATED``, porque congelar uma
+            discordancia conhecida e teste legitimo. Falso para indeterminado.
         difference: |modelo - referencia|, quando calculavel.
         budget: soma das meias larguras, quando calculavel.
+
+    ⚠ ``eligible_for_regression`` estava fazendo dois trabalhos. Congelar uma
+    comparacao conclusiva e uma coisa; tratar o valor como referencia aceita e
+    outra. Um resultado ``VIOLATED`` pode e deve virar teste que confirma a
+    rejeicao, mas **nao** e benchmark aceito. Por isso existe
+    :attr:`accepted_as_benchmark`, e as implicacoes sao:
+
+        eligible_for_regression  =>  numeric_comparison_performed
+                                 e   status != INDETERMINATE
+        accepted_as_benchmark    =>  status == SATISFIED
+        accepted_as_benchmark    =>  eligible_for_regression
     """
 
     status: Verdict
@@ -251,6 +263,14 @@ class AcceptanceResult:
     eligible_for_regression: bool
     difference: float | None = None
     budget: float | None = None
+
+    @property
+    def accepted_as_benchmark(self) -> bool:
+        """Se o valor do modelo pode ser tratado como concordante com a referencia.
+
+        Mais estrito que :attr:`eligible_for_regression`: exige ``SATISFIED``.
+        """
+        return self.status is Verdict.SATISFIED
 
     def __bool__(self) -> bool:
         """Apenas ``SATISFIED`` e verdadeiro.

@@ -197,3 +197,31 @@ def test_procedencia_e_imutavel():
     proc = ficha_jetcat()
     with pytest.raises(ValidationError):
         proc.source_type = SourceType.TEST
+
+
+def test_violado_e_congelavel_mas_nao_e_benchmark_aceito():
+    """Congelar uma discordancia conhecida e teste legitimo. Nao e validacao.
+
+    eligible_for_regression => comparacao feita e status != indeterminate
+    accepted_as_benchmark   => status == satisfied
+    """
+    concorda = within_combined_uncertainty(10.0, 11.0, 0.4, 0.7)
+    discorda = within_combined_uncertainty(10.0, 20.0, 0.4, 0.7)
+    inconclusivo = within_combined_uncertainty(10.0, 11.0, None, 0.5)
+
+    assert concorda.eligible_for_regression is True
+    assert concorda.accepted_as_benchmark is True
+
+    assert discorda.eligible_for_regression is True
+    assert discorda.accepted_as_benchmark is False
+
+    assert inconclusivo.eligible_for_regression is False
+    assert inconclusivo.accepted_as_benchmark is False
+
+
+def test_benchmark_aceito_implica_congelavel():
+    """A implicacao vale nos tres casos, nunca o contrario."""
+    for args in [(10.0, 11.0, 0.4, 0.7), (10.0, 20.0, 0.4, 0.7), (10.0, 11.0, None, 0.5)]:
+        r = within_combined_uncertainty(*args)
+        if r.accepted_as_benchmark:
+            assert r.eligible_for_regression
