@@ -34,7 +34,7 @@ Sem hardware. Custo zero. Python.
 | 2 | Trim com momento do peso, mapa de autoridade | entregue |
 | 3 | Dinâmica seis graus de liberdade | núcleo e suíte analítica prontos |
 
-398 testes, lint limpo.
+411 testes, lint limpo.
 
 ## A pergunta
 
