@@ -1,0 +1,95 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+EXPERIMENTO 4: TOLERANCIA A ATRASO E A LENTIDAO DO ATUADOR
+familia A, bocais vetorizados compactos, sobrevivente do funil
+
+CONDICOES DECLARADAS (a fronteira depende de TODAS elas)
+  massa                        115.0 kg   (estimada)
+  centro de massa              [0.1575, 0.0, 0.0] m
+  inercia diagonal             [32.2, 32.2, 2.3] kg m2   (estimada)
+  perturbacao de rolagem       10.0 graus
+  horizonte do alocador        0.20 s
+  banda do controlador         1.05 rad/s, 70% de 1.50 alcancavel
+  banda FIXA na varredura      so o atuador muda entre celulas
+  passo maximo                 0.002 s, Runge-Kutta de quarta ordem
+  tique do controlador         100 Hz, amostrado e retido
+
+ORCAMENTO DE MOMENTO, as duas margens do ADR-004
+  eixo         estatica   no horizonte    razao
+  roll         128.5 Nm        20.1 Nm     6.4x
+  pitch         64.1 Nm        12.6 Nm     5.1x
+  yaw           17.1 Nm         2.8 Nm     6.1x
+
+  ⚠ A margem de curto prazo e cinco a seis vezes menor que a estatica.
+    Empuxo maximo excelente nao implica autoridade de curto prazo.
+    Soma de empuxo no trim: 134.9 kgf.
+
+FRONTEIRA: atraso de transporte contra constante de tempo
+  ok = recuperou  AT = excedeu atitude  AL = perdeu altitude
+  WR = wrench inatingivel  .. = nao recuperou no horizonte
+
+    tau \ atraso   0.00   0.02   0.05   0.10   0.15   0.20   0.30   0.40
+  ----------------------------------------------------------------------
+            0.10     ok     ok     ok     ok     ok     ok     ok     ok
+            0.20     ok     ok     ok     ok     ok     ok     ok     ok
+            0.35     ok     ok     ok     ok     ok     ok     ok     ok
+            0.50     ok     ok     ok     ok     ok     ok     ok     AT
+            0.80     ok     ok     ok     ok     ok     ok     ok     AT
+            1.20     ok     ok     ok     ok     ok     ok     WR     WR
+            1.80     ok     ok     ok     ok     ..     WR     WR     WR
+
+MAIOR ATRASO QUE AINDA RECUPERA, por constante de tempo
+  tau = 0.10 s -> ate 0.40 s de atraso de transporte
+  tau = 0.20 s -> ate 0.40 s de atraso de transporte
+  tau = 0.35 s -> ate 0.40 s de atraso de transporte
+  tau = 0.50 s -> ate 0.30 s de atraso de transporte
+  tau = 0.80 s -> ate 0.30 s de atraso de transporte
+  tau = 1.20 s -> ate 0.20 s de atraso de transporte
+  tau = 1.80 s -> ate 0.10 s de atraso de transporte
+
+EFEITO DA RAMPA MAXIMA, com atraso de 0,05 s
+       rampa     tau=0,35     tau=0,80     tau=1,20
+       40 N/s    ok     0%    ok     0%    ok     0%
+       80 N/s    ok     0%    ok     0%    ok     0%
+      120 N/s    ok     0%    ok     0%    ok     0%
+      200 N/s    ok     0%    ok     0%    ok     0%
+      400 N/s    ok     0%    ok     0%    ok     0%
+
+  A fracao ao lado e o tempo em que o limite de rampa esteve ativo.
+
+A FRONTEIRA DEPENDE DA CONDICAO, e nao e propriedade da arquitetura
+   perturbacao    maior atraso que recupera, tau=0,35 s
+        5.0 graus                                 0.30 s
+       10.0 graus                                 0.40 s
+       20.0 graus                                 0.30 s
+       30.0 graus                                 0.20 s
+
+O QUE REALMENTE MANDA: banda exigida contra atraso tolerado
+  tau fixo em 0,35 s, rampa em 120 N/s, perturbacao de 10 graus
+
+       banda   periodo    maior atraso que recupera
+     0.50 r/s    12.6 s             0.40 s  (3.2% do periodo)
+     1.05 r/s     6.0 s             0.40 s  (6.7% do periodo)
+     2.00 r/s     3.1 s             0.15 s  (4.8% do periodo)
+     3.00 r/s     2.1 s             0.02 s  (1.0% do periodo)
+     4.50 r/s     1.4 s             nenhum
+     6.00 r/s     1.0 s             nenhum
+
+  ⚠ **A arquitetura tolera atraso porque e obrigada a ser lenta.** A banda
+    que a autoridade de curto prazo permite e de cerca de 1,5 rad/s, ou um
+    periodo de quatro segundos. Qualquer atraso da faixa varrida e uma
+    fracao pequena disso. O parametro que limita esta arquitetura NAO e o
+    atraso: e o momento disponivel no horizonte.
+
+  Isso inverte a pergunta do passo seguinte. A especificacao que sai daqui
+  nao e 'a turbina precisa ser rapida', e sim 'a turbina precisa entregar
+  momento', o que se traduz em faixa de empuxo e rampa, nao em atraso.
+
+  ⚠ Nao existe 'atraso critico da arquitetura'. A fronteira e funcao de
+    geometria, massa, centro de massa, inercia, rampa, banda, perturbacao
+    e limites de falha, e todos estao declarados acima.

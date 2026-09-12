@@ -26,6 +26,7 @@ sys.path.insert(0, "src")
 sys.path.insert(0, "tools")
 
 import compare_energy_architectures  # noqa: E402
+import delay_sweep  # noqa: E402
 import dump_geometry_detail  # noqa: E402
 import funnel  # noqa: E402
 import sweep_geometry  # noqa: E402
@@ -46,6 +47,7 @@ EXPERIMENTOS = (
     ("experimento-2-energia.txt", compare_energy_architectures.main),
     ("geometria-detalhe.txt", dump_geometry_detail.main),
     ("experimento-3-funil.txt", funnel.main),
+    ("experimento-4-atraso.txt", delay_sweep.main),
 )
 
 
