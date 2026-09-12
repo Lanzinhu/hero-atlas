@@ -1,5 +1,12 @@
 """Analise: envelope, energia, trim, estabilidade, requisitos."""
 
+from .authority import (
+    AuthorityMap,
+    analyse_authority,
+    cg_window,
+    single_failure_survey,
+    thrust_null_space,
+)
 from .energy import (
     TurbineEndurance,
     disk_area_from_rotors_m2,
@@ -23,6 +30,11 @@ from .trim import CaptureAssessment, TrimSolution, TrimTarget, assess_capture, s
 
 __all__ = [
     "ActuatorRequirement",
+    "AuthorityMap",
+    "analyse_authority",
+    "cg_window",
+    "single_failure_survey",
+    "thrust_null_space",
     "AdmissibleRegion",
     "CaptureAssessment",
     "TrimSolution",

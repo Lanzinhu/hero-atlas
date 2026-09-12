@@ -199,11 +199,15 @@ def test_o_trim_equilibra_de_fato_o_wrench_exigido():
     np.testing.assert_allclose(solucao.residual_wrench, 0.0, atol=1e-6)
 
 
-def test_eficiencia_vertical_e_menor_que_um():
-    """Parte do empuxo se cancela entre bocais e nao vira sustentacao."""
+def test_razao_de_projecao_vertical_e_menor_que_um():
+    """Parte do empuxo se cancela entre bocais e nao vira sustentacao.
+
+    Razao de PROJECAO, nao eficiencia: mede perda geometrica, nao perda de
+    instalacao nem propulsiva.
+    """
     solucao = solve_trim(layout(), mass_kg=117.0, center_of_mass_body_m=CG_VIAVEL)
 
-    assert 0.85 < solucao.vertical_efficiency < 1.0
+    assert 0.85 < solucao.vertical_thrust_projection_ratio < 1.0
 
 
 def test_soma_do_trim_e_menor_que_a_capacidade_instalada():
@@ -338,3 +342,142 @@ def test_limites_invertidos_sao_recusados():
             thrust_min_N=100.0,
             thrust_max_N=10.0,
         )
+
+
+# --------------------------------------------------------------------------- #
+# Mapa de autoridade: o que a geometria pode, antes de qualquer controlador
+# --------------------------------------------------------------------------- #
+
+
+def test_ha_combinacao_de_empuxo_que_nao_produz_wrench_nenhum():
+    """⚠ A segunda limitacao, separada do acoplamento lateral.
+
+    O nucleo a direita da matriz e uma **carga interna**: os propulsores brigam
+    entre si e o resultado se cancela exatamente. Cada dimensao dessas e um grau de
+    liberdade de atuador desperdicado, e e por isso que contar propulsores
+    superestima autoridade.
+    """
+    from hero_atlas.analysis.authority import analyse_authority, thrust_null_space
+
+    mapa = analyse_authority(layout())
+    nucleo = thrust_null_space(layout())
+    W = allocation_matrix(layout())
+
+    assert mapa.wasted_actuator_freedoms == 1
+    assert nucleo.shape == (5, 1)
+    np.testing.assert_allclose(W @ nucleo[:, 0], 0.0, atol=1e-9)
+
+
+def test_a_linha_de_forca_longitudinal_e_identicamente_nula():
+    """Sem componente para frente em nenhum bocal, Fx nao e canal de controle."""
+    from hero_atlas.analysis.authority import analyse_authority
+
+    mapa = analyse_authority(layout())
+
+    assert "Fx" in mapa.zero_rows
+    assert not mapa.full_rank
+
+
+def test_quebrar_o_acoplamento_nao_restaura_o_posto():
+    """⚠ Achado que corrige a minha propria leitura anterior.
+
+    Escalonar altura entre os pares torna forca lateral e rolagem independentes,
+    mas o posto continua 4 de 6: a carga interna e a ausencia de forca longitudinal
+    sao limitacoes **separadas**, e resolver uma nao resolve a outra.
+    """
+    from hero_atlas.analysis.authority import analyse_authority
+
+    base = layout()
+    escalonado = PropulsionGeometry(
+        nozzles=tuple(
+            NozzleSpec(
+                name=n.name,
+                position_body_m=(
+                    n.position_body_m
+                    if n.name == "dorsal"
+                    else n.position_body_m + np.array([0.0, 0.0, -0.10 * ("tras" in n.name)])
+                ),
+                direction_body=n.direction_body,
+                thrust_min_N=n.thrust_min_N,
+                thrust_max_N=n.thrust_max_N,
+            )
+            for n in base.nozzles
+        ),
+        reference_point_body_m=base.reference_point_body_m,
+    )
+
+    W_base, W_esc = allocation_matrix(base), allocation_matrix(escalonado)
+
+    def acoplado(W: np.ndarray) -> bool:
+        ativos = np.abs(W[1, :]) > 1e-9
+        razoes = W[3, ativos] / W[1, ativos]
+        return bool(np.allclose(razoes, razoes[0], atol=1e-9))
+
+    assert acoplado(W_base), "a base tem o acoplamento"
+    assert not acoplado(W_esc), "escalonar altura desacopla"
+    assert analyse_authority(escalonado).rank == 4, "mas o posto nao melhora"
+
+
+def test_componente_longitudinal_nos_bocais_sobe_o_posto():
+    """Inclinar os bocais para frente e para tras recupera Fx como canal.
+
+    De 4 para 5. Ainda nao 6, porque a carga interna continua.
+    """
+    from hero_atlas.analysis.authority import analyse_authority
+
+    base = layout()
+    com_x = PropulsionGeometry(
+        nozzles=tuple(
+            NozzleSpec(
+                name=n.name,
+                position_body_m=n.position_body_m,
+                direction_body=(
+                    n.direction_body
+                    if n.name == "dorsal"
+                    else n.direction_body
+                    + np.array([0.15 if "frente" in n.name else -0.10, 0.0, 0.0])
+                ),
+                thrust_min_N=n.thrust_min_N,
+                thrust_max_N=n.thrust_max_N,
+            )
+            for n in base.nozzles
+        ),
+        reference_point_body_m=base.reference_point_body_m,
+    )
+
+    assert analyse_authority(base).rank == 4
+    assert analyse_authority(com_x).rank == 5
+
+
+def test_janela_de_centro_de_massa_lateral_e_vazia():
+    """Condicionado a pairado nivelado, geometria nominal e atuadores disponiveis."""
+    from hero_atlas.analysis.authority import cg_window
+
+    geo = layout()
+
+    longitudinal = cg_window(geo, mass_kg=117.0, axis=0, span_m=(-0.10, 0.50))
+    lateral = cg_window(
+        geo, mass_kg=117.0, axis=1, span_m=(-0.10, 0.10), fixed_cg_m=(0.15, 0.0, 0.0)
+    )
+
+    assert longitudinal is not None
+    assert longitudinal[1] - longitudinal[0] > 0.05
+    # so o ponto exatamente centrado sobrevive
+    assert lateral == pytest.approx((0.0, 0.0), abs=1e-9)
+
+
+def test_a_perda_unica_e_concluida_do_solver_nao_do_posto():
+    """⚠ Correcao de raciocinio.
+
+    "Posto 4 com cinco atuadores, logo sem folga" **nao** e derivacao valida:
+    remover um atuador pode manter o posto e ainda assim preservar ou destruir um
+    trim particular. So resolvendo se descobre.
+    """
+    from hero_atlas.analysis.authority import single_failure_survey
+
+    resultado = single_failure_survey(layout(), mass_kg=117.0, center_of_mass_body_m=CG_VIAVEL)
+
+    assert len(resultado) == 5
+    assert all(causa is not InfeasibilityCause.NONE for causa in resultado.values()), (
+        "nesta geometria e neste centro de massa, nenhuma perda unica admite trim"
+    )

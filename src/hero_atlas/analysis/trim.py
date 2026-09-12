@@ -139,12 +139,18 @@ class TrimSolution:
         return self.achieved_wrench - self.required_wrench
 
     @property
-    def vertical_efficiency(self) -> float:
-        """Quanto da soma escalar de empuxo vira forca util na vertical.
+    def vertical_thrust_projection_ratio(self) -> float:
+        """Quanto da soma escalar de empuxo vira forca vertical **neste trim**.
 
-        ⚠ E o numero que o marco 1 nao conseguia ver. O envelope presumia 1,0 menos
-        o cosseno; aqui sai da geometria real, com bocais que se cancelam
-        parcialmente entre si.
+            razao = |Fz alcancado| / soma_i T_i
+
+        ⚠ **Nao e eficiencia.** Nao e eficiencia de instalacao, nem propulsiva, nem
+        de motor. E uma razao de projecao geometrica: mede o quanto se perde por
+        direcao de bocal e cancelamento mutuo, e nada mais. Chamar de eficiencia
+        confundiria com as perdas de instalacao e interacao, que sao outra coisa e
+        vivem em ``InstallationLosses``.
+
+        E o numero que o envelope escalar do marco 1 nao conseguia ver.
         """
         if not self.feasible or self.total_thrust_N <= 0.0:
             return 0.0
