@@ -1,4 +1,4 @@
-"""Experimento 5: turbinas reais contra a especificacao que o simulador produziu.
+"""Experimento 5: triagem de turbinas de catalogo contra especificacao parcial.
 
 Roda com::
 
@@ -10,17 +10,20 @@ A pergunta:
     atendem, quais nao atendem, e **quais requisitos nao podem sequer ser
     verificados** com o que os fabricantes publicam?
 
-⚠ Este experimento **nao** seleciona turbina, nao aprova nenhuma, e nao afirma que
-alguma funcionaria. Ele confronta requisito com dado publicado e, principalmente,
-**expoe o que falta**.
+⚠ **Nenhuma turbina e validada nem selecionada aqui.** O experimento confronta dado
+publicado contra a parte **estatica** da especificacao e mostra que a parte dinamica
+continua indisponivel. Triagem contra especificacao parcial e condicional nao e selecao,
+e a diferenca entre as duas palavras e a diferenca entre este projeto e um catalogo.
 
 ⚠ **A massa da turbina entra na conta.** Sete turbinas de quatro quilos sao vinte e
 oito quilos que o veiculo precisa sustentar, o que muda o empuxo exigido, que muda a
 turbina necessaria. O laco e fechado aqui em vez de ignorado.
 
-Dados de catalogo recuperados em 2026-09-12. ⚠ Sem copia arquivada com hash: o
-projeto registra a data e a origem, e isso ainda e evidencia mais fraca do que o
-regime de procedencia do ADR-007 exige.
+Dados de catalogo recuperados em 2026-09-12, com registro em ``docs/sources/``.
+
+⚠ Os registros sao **transcricoes**, nao copias arquivadas do original, e portanto ainda
+nao satisfazem o ADR-007. Com copia arquivada, uma alteracao silenciosa na pagina do
+fabricante seria detectavel; com transcricao, nao e.
 """
 
 from __future__ import annotations
@@ -215,7 +218,7 @@ def avalia(t: Turbina) -> dict[str, object]:
 
 def main() -> None:
     print()
-    print("EXPERIMENTO 5: TURBINAS REAIS CONTRA A ESPECIFICACAO")
+    print("EXPERIMENTO 5: TRIAGEM DE TURBINAS CONTRA ESPECIFICACAO PARCIAL")
     print("sete propulsores, geometria A, piloto 80 kg, estrutura 12 kg, 20 kg de combustivel")
     print()
 
@@ -250,13 +253,17 @@ def main() -> None:
     print("  Verificado na pagina do fabricante da JetCat em 2026-09-12: nenhuma")
     print("  especificacao de tempo, resposta, constante ou taxa aparece.")
     print()
-    print("  ⚠ E ha um motivo tecnico, nao comercial: a taxa de subida de empuxo e")
-    print("    limitada DELIBERADAMENTE pela unidade de controle, para nao afogar a")
-    print("    camara na aceleracao nem apagar a chama na desaceleracao. Ou seja, a")
-    print("    rampa nao e propriedade fixa do motor: e parametro de controle, com")
-    print("    margem termica e risco de apagamento do outro lado. Isso a torna, em")
-    print("    principio, NEGOCIAVEL com o fabricante, e e por isso que pedir o dado")
-    print("    e mais util que procura-lo.")
+    print("  ⚠ INFERENCIA DE ENGENHARIA, nao dado de catalogo. A literatura de operacao")
+    print("    descreve que a unidade de controle limita a taxa de combustivel de")
+    print("    proposito, para nao afogar a camara na aceleracao nem apagar a chama na")
+    print("    desaceleracao. Dai NAO se segue que a rampa seja ajustavel: ela pode")
+    print("    estar presa a estabilidade de chama, temperatura de entrada de turbina,")
+    print("    rotacao maxima, inercia do conjunto rotativo, margem de surge, protecao")
+    print("    interna ou seguranca do equipamento.")
+    print()
+    print("    A formulacao que o projeto sustenta: a rampa pode depender de calibracao")
+    print("    e logica da unidade de controle, e qualquer possibilidade de alteracao")
+    print("    permanece DESCONHECIDA ate confirmacao documentada do fabricante.")
     print()
 
     print("O QUE DA PARA VERIFICAR, montando o veiculo com cada uma")
@@ -304,10 +311,14 @@ def main() -> None:
     print("  Quatro dos oito requisitos NAO podem ser verificados com dado publicado.")
     print("  Os quatro sao exatamente os que dependem de dinamica.")
     print()
-    print("  ⚠ Conclusao permitida: com os dados publicados, nenhuma candidata pode")
-    print("    ser aprovada nem reprovada nos criterios dinamicos. O que o passo 5")
-    print("    produziu e uma LISTA DE PERGUNTAS para o fabricante, nao um pedido de")
-    print("    compra. Este e o resultado util deste experimento.")
+    print("  ⚠ Conclusao permitida: as turbinas foram TRIADAS contra uma especificacao")
+    print("    parcial e condicional. Nenhuma foi validada nem selecionada. Com os dados")
+    print("    publicados nenhuma candidata pode ser aprovada nem reprovada nos criterios")
+    print("    dinamicos, e as que passaram a triagem estatica permanecem NAO AVALIADAS")
+    print("    nos dinamicos.")
+    print()
+    print("    O que o passo 5 produziu e uma LISTA DE PERGUNTAS para o fabricante, nao")
+    print("    um pedido de compra. Este e o resultado util deste experimento.")
 
 
 if __name__ == "__main__":

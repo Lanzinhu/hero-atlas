@@ -137,9 +137,15 @@ def main() -> None:
     delay_sweep.INERCIA = inercia_base
     delay_sweep._BANDA_CACHE.clear()
     print()
-    print("  ⚠ Se a fronteira nao se move nesta faixa, a estimativa de inercia NAO e o")
-    print("    fator limitante e o CAD pode esperar. Se ela se move, todo numero do")
-    print("    passo 5 herda a incerteza de massa e o CAD sobe de prioridade.")
+    print("  ⚠ O QUE ISTO DEMONSTRA, e so isto: para esta geometria, este controlador,")
+    print("    esta missao, esta inercia nominal e esta faixa de escala, a incerteza")
+    print("    ESCALAR de inercia nao dominou a fronteira de atraso encontrada.")
+    print()
+    print("  ⚠ O QUE NAO DEMONSTRA: nada sobre massa seca por familia, centro de massa")
+    print("    real, produtos de inercia fora da diagonal, bracos reais, interferencia")
+    print("    geometrica, frequencias naturais, rigidez, modos estruturais, ou massa e")
+    print("    fixacao de propulsores reais. Concluir daqui que 'o CAD pode esperar'")
+    print("    seria estender um teste de uma variavel escalar ao projeto inteiro.")
     print()
 
     print("O QUE O CAD RESOLVERIA, e so ele")
@@ -152,9 +158,10 @@ def main() -> None:
     ):
         print(f"  - {item}")
     print()
-    print("  ⚠ Nada disso muda a conclusao central do passo 5, que e sobre RAZAO entre")
-    print("    margem estatica e margem de curto prazo. Essa razao depende da rampa e")
-    print("    do horizonte, nao da inercia.")
+    print("  ⚠ A razao entre margem estatica e margem de curto prazo, que e a conclusao")
+    print("    central do passo 5, depende da rampa e do horizonte e NAO da inercia,")
+    print("    entao ela sobrevive a essa incerteza. Todo o RESTO da lista acima")
+    print("    continua em aberto e continua precisando de CAD.")
 
 
 if __name__ == "__main__":

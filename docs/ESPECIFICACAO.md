@@ -265,7 +265,11 @@ inclinando o veículo.
 prazo permite cerca de 1,5 rad/s. O parâmetro limitante **não é o atraso**: é o momento
 disponível no horizonte.
 
-### Experimento 5 — Turbinas reais contra a especificação
+### Experimento 5 — Triagem de turbinas contra especificação parcial
+
+⚠ **Nenhuma turbina foi validada nem selecionada.** O experimento confronta dados
+publicados contra a parte **estática** da especificação e mostra que a parte dinâmica
+continua indisponível. Triagem contra especificação parcial e condicional não é seleção.
 
 | Turbina | Empuxo máx | Massa | Fração do teto no trim | Momento no horizonte |
 |---|---:|---:|---:|---:|
@@ -273,8 +277,9 @@ disponível no horizonte.
 | Kingtech K-260G4 | 255 N | 2,20 kg | 0,82 | 20,1 N·m |
 | Kingtech K-210G4 | 206 N | 1,74 kg | **0,99** | **0,9 N·m** |
 
-A K-210G4 é eliminada por **autoridade**, não por empuxo: opera a 99% do teto no trim e
-não sobra margem para momento.
+A K-210G4 é **triada fora** por autoridade, não por empuxo: opera a 99% do teto no trim e
+não sobra margem para momento. As outras duas passam a triagem estática e permanecem
+**não avaliadas** nos critérios dinâmicos.
 
 **Quatro dos oito requisitos não podem ser verificados** com dado publicado, e são
 exatamente os que dependem de dinâmica: momento no horizonte, banda alcançável,
@@ -283,10 +288,17 @@ tolerância a atraso e estabilidade.
 Verificado na página do fabricante da JetCat em 2026-09-12: **nenhuma especificação de
 tempo, resposta, constante ou taxa aparece**.
 
-⚠ E há motivo técnico, não comercial: a taxa de subida de empuxo é limitada
-**deliberadamente** pela unidade de controle, para não afogar a câmara na aceleração nem
-apagar a chama na desaceleração. A rampa é parâmetro de controle, não propriedade fixa,
-o que a torna em princípio negociável com o fabricante.
+⚠ **Inferência de engenharia, não dado de catálogo.** A literatura de operação descreve
+que a unidade de controle limita a taxa de combustível deliberadamente, para não afogar a
+câmara na aceleração nem apagar a chama na desaceleração. Daí **não** se segue que a
+rampa seja ajustável.
+
+Ela pode estar presa a limites duros de estabilidade de chama, temperatura de entrada de
+turbina, rotação máxima, inércia do conjunto rotativo, margem de surge do compressor,
+proteção interna da unidade de controle ou segurança do equipamento. A formulação que o
+projeto sustenta é: **a rampa pode depender de calibração e lógica da unidade de
+controle, e qualquer possibilidade de alteração permanece desconhecida até confirmação
+documentada do fabricante.**
 
 ### Experimento 6 — Triagem estrutural e de ressonância
 
@@ -306,9 +318,20 @@ continuamente, então não há "passar rápido pela ressonância".
 **Cargas de fixação:** cada berço suporta o **teto** do propulsor, não o valor de trim.
 Maior momento de fixação no teto: **178 N·m**, em flexão, com o piloto do outro lado.
 
-**Quanto a falta de CAD custa:** a fronteira de atraso foi refeita com a inércia escalada
-de 0,7× a 1,6×, e o resultado se move de 0,40 s para 0,30 s apenas no extremo inferior.
-**Medido: a estimativa de inércia não é o fator limitante**, e o CAD pode esperar.
+**Quanto a incerteza escalar de inércia custa:** a fronteira de atraso foi refeita com o
+tensor inteiro escalado de 0,7× a 1,6×, e o resultado se move de 0,40 s para 0,30 s
+apenas no extremo inferior.
+
+⚠ **O que isso demonstra, e só isso:** para esta geometria, este controlador, esta
+missão, esta inércia nominal e esta faixa de escala, a incerteza **escalar** de inércia
+não dominou a fronteira de atraso encontrada.
+
+⚠ **O que isso não demonstra.** Nada foi dito sobre massa seca por família, posição real
+do centro de massa, produtos de inércia fora da diagonal, braços de alavanca reais,
+interferência geométrica entre bocais e corpo, frequências naturais, rigidez, modos
+estruturais, ou massa e fixação de propulsores reais. Uma versão anterior deste
+documento concluía daqui que "o CAD pode esperar", e a frase era ampla demais: o teste
+cobria uma variável escalar e a conclusão falava do projeto inteiro.
 
 ---
 
@@ -382,12 +405,29 @@ extrapolado, dinâmica reduzida e modelo de atuador assumido:
 5. A margem de autoridade de curto prazo é cinco a seis vezes menor que a estática.
 6. O parâmetro limitante desta arquitetura não é o atraso: é o momento disponível no
    horizonte.
-7. Quatro dos oito requisitos de propulsão não podem ser verificados com dado publicado.
+7. Quatro dos oito requisitos de propulsão não podem ser verificados com dado
+   publicado, e as turbinas foram **triadas**, nunca selecionadas.
 
 **Não é permitido concluir** que a arquitetura funciona, que uma turbina serve, que um
 piloto conseguiria pilotar, ou que há estabilidade fora da faixa varrida.
 
 ---
+
+## 10b. Procedência das fontes externas
+
+Registros em `docs/sources/`, com origem, data de consulta, valores transcritos,
+derivações feitas pelo projeto e **o que a fonte não publica**.
+
+⚠ São **transcrições**, não cópias arquivadas do original, e portanto ainda não
+satisfazem o ADR-007. A diferença: com cópia arquivada, uma alteração silenciosa na
+página do fabricante seria detectável; com transcrição, não é.
+
+| Nível de evidência | Estado |
+|---|---|
+| número citado sem origem | eliminado do projeto |
+| transcrição com origem e data | **onde estamos** |
+| cópia do documento com hash | pendente |
+| medição própria em bancada | fora do escopo |
 
 ## 11. Reprodução
 

@@ -5,7 +5,7 @@
 # consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
 # declarados sem copia arquivada. Nada aqui representa hardware.
 
-EXPERIMENTO 5: TURBINAS REAIS CONTRA A ESPECIFICACAO
+EXPERIMENTO 5: TRIAGEM DE TURBINAS CONTRA ESPECIFICACAO PARCIAL
 sete propulsores, geometria A, piloto 80 kg, estrutura 12 kg, 20 kg de combustivel
 
 O QUE OS FABRICANTES PUBLICAM
@@ -28,13 +28,17 @@ O QUE NENHUM DELES PUBLICA, E QUE E O QUE DECIDE
   Verificado na pagina do fabricante da JetCat em 2026-09-12: nenhuma
   especificacao de tempo, resposta, constante ou taxa aparece.
 
-  ⚠ E ha um motivo tecnico, nao comercial: a taxa de subida de empuxo e
-    limitada DELIBERADAMENTE pela unidade de controle, para nao afogar a
-    camara na aceleracao nem apagar a chama na desaceleracao. Ou seja, a
-    rampa nao e propriedade fixa do motor: e parametro de controle, com
-    margem termica e risco de apagamento do outro lado. Isso a torna, em
-    principio, NEGOCIAVEL com o fabricante, e e por isso que pedir o dado
-    e mais util que procura-lo.
+  ⚠ INFERENCIA DE ENGENHARIA, nao dado de catalogo. A literatura de operacao
+    descreve que a unidade de controle limita a taxa de combustivel de
+    proposito, para nao afogar a camara na aceleracao nem apagar a chama na
+    desaceleracao. Dai NAO se segue que a rampa seja ajustavel: ela pode
+    estar presa a estabilidade de chama, temperatura de entrada de turbina,
+    rotacao maxima, inercia do conjunto rotativo, margem de surge, protecao
+    interna ou seguranca do equipamento.
+
+    A formulacao que o projeto sustenta: a rampa pode depender de calibracao
+    e logica da unidade de controle, e qualquer possibilidade de alteracao
+    permanece DESCONHECIDA ate confirmacao documentada do fabricante.
 
 O QUE DA PARA VERIFICAR, montando o veiculo com cada uma
 turbina                  bruto  turbinas   trim   T/Tmax  Mx horiz    banda  autonomia
@@ -61,7 +65,11 @@ VEREDITO POR REQUISITO
   Quatro dos oito requisitos NAO podem ser verificados com dado publicado.
   Os quatro sao exatamente os que dependem de dinamica.
 
-  ⚠ Conclusao permitida: com os dados publicados, nenhuma candidata pode
-    ser aprovada nem reprovada nos criterios dinamicos. O que o passo 5
-    produziu e uma LISTA DE PERGUNTAS para o fabricante, nao um pedido de
-    compra. Este e o resultado util deste experimento.
+  ⚠ Conclusao permitida: as turbinas foram TRIADAS contra uma especificacao
+    parcial e condicional. Nenhuma foi validada nem selecionada. Com os dados
+    publicados nenhuma candidata pode ser aprovada nem reprovada nos criterios
+    dinamicos, e as que passaram a triagem estatica permanecem NAO AVALIADAS
+    nos dinamicos.
+
+    O que o passo 5 produziu e uma LISTA DE PERGUNTAS para o fabricante, nao
+    um pedido de compra. Este e o resultado util deste experimento.
