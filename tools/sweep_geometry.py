@@ -40,7 +40,11 @@ from hero_atlas.analysis.authority import (  # noqa: E402
     cg_window,
     single_failure_survey,
 )
-from hero_atlas.analysis.trim import InfeasibilityCause, solve_trim  # noqa: E402
+from hero_atlas.analysis.trim import (  # noqa: E402
+    InfeasibilityCause,
+    TrimObjective,
+    solve_trim,
+)
 from hero_atlas.units import G0, to_si  # noqa: E402
 
 MASSA_KG = 117.0
@@ -59,6 +63,17 @@ def acoplamento_lateral_rolagem(geo: PropulsionGeometry) -> bool:
     return bool(np.allclose(razoes, razoes[0], atol=1e-9))
 
 
+def _folga_minima(geo: PropulsionGeometry, solucao) -> float:
+    """Folga do trim de margem maxima, em kgf.
+
+    ⚠ Posto diz se a direcao existe; **isto** diz se sobra empuxo para usa-la.
+    Exige trim de ``MAX_MARGIN``: com ``MIN_THRUST`` a solucao encosta nos limites
+    por construcao e a folga sai zero sempre, o que seria artefato do objetivo.
+    """
+    del geo
+    return solucao.margin_N / G0 if solucao.feasible else 0.0
+
+
 @dataclass(frozen=True)
 class Resultado:
     nome: str
@@ -73,6 +88,8 @@ class Resultado:
     falhas_toleradas: int
     condicionamento: float
     rolagem_pura: bool
+    menor_singular: float
+    folga_min_kgf: float
 
 
 def avaliar(nome: str, geo: PropulsionGeometry) -> Resultado:
@@ -82,7 +99,14 @@ def avaliar(nome: str, geo: PropulsionGeometry) -> Resultado:
     janela_x = cg_window(geo, mass_kg=MASSA_KG, axis=0, span_m=(-0.40, 0.60), step_m=0.005)
     cg_x = 0.0 if janela_x is None else 0.5 * (janela_x[0] + janela_x[1])
 
-    solucao = solve_trim(geo, mass_kg=MASSA_KG, center_of_mass_body_m=[cg_x, 0.0, 0.0])
+    # ⚠ max_margin, nao min_thrust: minimizar empuxo encosta nos limites por
+    # construcao, e reportaria folga zero como se fosse propriedade da arquitetura.
+    solucao = solve_trim(
+        geo,
+        mass_kg=MASSA_KG,
+        center_of_mass_body_m=[cg_x, 0.0, 0.0],
+        objective=TrimObjective.MAX_MARGIN,
+    )
 
     janela_y = cg_window(
         geo,
@@ -93,9 +117,7 @@ def avaliar(nome: str, geo: PropulsionGeometry) -> Resultado:
         fixed_cg_m=(cg_x, 0.0, 0.0),
     )
 
-    falhas = single_failure_survey(
-        geo, mass_kg=MASSA_KG, center_of_mass_body_m=[cg_x, 0.0, 0.0]
-    )
+    falhas = single_failure_survey(geo, mass_kg=MASSA_KG, center_of_mass_body_m=[cg_x, 0.0, 0.0])
     toleradas = sum(1 for c in falhas.values() if c is InfeasibilityCause.NONE)
 
     return Resultado(
@@ -111,6 +133,8 @@ def avaliar(nome: str, geo: PropulsionGeometry) -> Resultado:
         falhas_toleradas=toleradas,
         condicionamento=mapa.condition_number,
         rolagem_pura=lateral_cg_authority(geo),
+        menor_singular=mapa.smallest_nonzero_singular,
+        folga_min_kgf=_folga_minima(geo, solucao),
     )
 
 
@@ -231,7 +255,7 @@ def main() -> None:
 
     cab = (
         f"{'arquitetura':30} {'n':>2} {'posto':>5} {'acopl':>6} {'trim':>5} "
-        f"{'jan_x':>6} {'jan_y':>6} {'roll':>5} {'proj':>5} {'falhas':>6}"
+        f"{'jan_x':>6} {'jan_y':>6} {'roll':>5} {'sigma':>7} {'folga':>6} {'falhas':>6}"
     )
     print(cab)
     print("-" * len(cab))
@@ -244,21 +268,23 @@ def main() -> None:
             f"{'SIM' if r.acoplado else 'nao':>6} {trim:>5} "
             f"{r.janela_long_cm:5.1f}  {r.janela_lat_cm:5.1f}  "
             f"{'SIM' if r.rolagem_pura else 'nao':>5} "
-            f"{r.projecao_vertical:5.3f} {r.falhas_toleradas:2}/{r.n_bocais:<3}"
+            f"{r.menor_singular:7.4f} {r.folga_min_kgf:6.1f} {r.falhas_toleradas:2}/{r.n_bocais:<3}"
         )
 
     print()
-    print("legenda: jan_x e jan_y em cm; roll = consegue rolagem pura sem forca lateral;")
-    print("         proj = projecao vertical; falhas = perdas unicas que ainda admitem trim")
+    print("legenda: jan_x e jan_y em cm; roll = rolagem pura sem forca lateral;")
+    print("         sigma = menor valor singular, quao FRACA e a direcao mais fraca;")
+    print("         folga = empuxo em kgf ate o limite mais proximo no trim;")
+    print("         falhas = perdas unicas que ainda admitem trim")
     print()
 
-    sobreviventes = [
-        r for r in resultados if r.trim_viavel and r.rolagem_pura and r.posto >= 5
-    ]
+    sobreviventes = [r for r in resultados if r.trim_viavel and r.rolagem_pura and r.posto >= 5]
     print(f"CANDIDATAS QUE MERECEM DINAMICA: {len(sobreviventes)} de {len(resultados)}")
     for r in sobreviventes:
-        print(f"  {r.nome}: posto {r.posto}, janela lateral {r.janela_lat_cm:.1f} cm, "
-              f"{r.falhas_toleradas} perdas toleradas")
+        print(
+            f"  {r.nome}: posto {r.posto}, janela lateral {r.janela_lat_cm:.1f} cm, "
+            f"{r.falhas_toleradas} perdas toleradas"
+        )
     if not sobreviventes:
         print("  nenhuma. Nenhuma destas classes fecha os criterios minimos.")
 

@@ -46,9 +46,7 @@ class Handler(BaseHTTPRequestHandler):
         return set(json.loads(self.state_file.read_text(encoding="utf-8"))["sent"])
 
     def save_sent(self, sent: set[int]) -> None:
-        self.state_file.write_text(
-            json.dumps({"sent": sorted(sent)}, indent=2), encoding="utf-8"
-        )
+        self.state_file.write_text(json.dumps({"sent": sorted(sent)}, indent=2), encoding="utf-8")
 
     def manifest(self) -> dict:
         return json.loads((self.root / "manifest.json").read_text(encoding="utf-8"))

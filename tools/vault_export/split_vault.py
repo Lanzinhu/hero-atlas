@@ -71,8 +71,7 @@ def split_oversized(header: str, body: str, max_chars: int) -> list[str]:
 
     total = len(pieces)
     return [
-        f"{header} (trecho {i + 1}/{total})\n\n{piece.strip()}\n"
-        for i, piece in enumerate(pieces)
+        f"{header} (trecho {i + 1}/{total})\n\n{piece.strip()}\n" for i, piece in enumerate(pieces)
     ]
 
 

@@ -213,11 +213,20 @@ def lateral_cg_authority(geometry: PropulsionGeometry) -> bool:
     guinada.
 
     Dois pares dao no maximo dois graus antissimetricos, e dois nao cobrem tres.
-    **E contagem de pares nao basta:** tres pares diferindo apenas em altura ainda
-    produzem posto 2, porque as contribuicoes ficam dependentes. Os pares precisam
-    diferir em envergadura, altura **e** inclinacao para que as tres contribuicoes
-    sejam independentes.
 
-    Verificado empiricamente em tools/sweep_geometry.py.
+    ⚠ **E contagem de pares nao basta.** Na familia varrida, tres pares diferindo
+    apenas em altura, ou apenas em envergadura, ou nos dois juntos, continuam sem
+    rolagem pura. Diferenca de **inclinacao** foi o que bastou.
+
+    ⚠ **A condicao geral e diversidade das colunas, nao um parametro especifico.**
+    A propriedade matematica e o posto da matriz de alocacao; qualquer geometria que
+    gere colunas independentes serve, e a varredura so testou uma familia.
+
+    ⚠ E **posto nao e margem**. As variantes que conseguem rolagem pura tem menor
+    valor singular cerca de cinco a dez vezes menor que as que nao conseguem: a
+    direcao existe, e exige redistribuicao enorme de empuxo para ser usada. Ver
+    :attr:`AuthorityMap.smallest_nonzero_singular`.
+
+    Verificado em tools/sweep_geometry.py.
     """
     return can_produce(geometry, [0.0, 0.0, 0.0, 1.0, 0.0, 0.0])

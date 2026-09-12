@@ -571,9 +571,14 @@ def test_rolagem_pura_e_o_filtro_que_elimina_quase_tudo():
 def test_contagem_de_pares_nao_basta():
     """⚠ Tres pares diferindo **so em altura** ainda falham.
 
-    Achado do experimento 1. As contribuicoes antissimetricas ficam dependentes, e
-    a conclusao "mais propulsores resolve" e falsa: eles precisam diferir em
-    envergadura, altura e inclinacao.
+    Achado do experimento 1: as contribuicoes antissimetricas ficam dependentes, e
+    "mais propulsores resolve" e falso.
+
+    ⚠ Correcao de uma afirmacao minha anterior: eu havia escrito que os pares
+    precisam diferir nos **tres** parametros. Testado, e falso. Diferenca so de
+    inclinacao ja basta nesta familia, e altura mais envergadura juntas nao bastam.
+    A condicao geral e diversidade de coluna, nao um parametro especifico.
+    Ver :func:`test_diferenca_de_inclinacao_sozinha_ja_basta`.
     """
     from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
     from hero_atlas.analysis.authority import lateral_cg_authority
@@ -621,3 +626,138 @@ def test_can_produce_recusa_wrench_de_tamanho_errado():
 
     with pytest.raises(ValueError, match="6 componentes"):
         can_produce(layout(), [0.0, 0.0, -1.0])
+
+
+def test_diferenca_de_inclinacao_sozinha_ja_basta():
+    """⚠ Derruba a minha propria afirmacao de que os tres parametros eram necessarios.
+
+    Tres pares na mesma altura e mesma envergadura, diferindo **so na inclinacao
+    lateral**, ja conseguem rolagem pura. E o contrario nao vale: altura mais
+    envergadura, sem inclinacao, continua falhando.
+
+    A condicao geral e diversidade das colunas da matriz de alocacao, e a varredura
+    so testou uma familia de geometrias.
+    """
+    from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
+    from hero_atlas.analysis.authority import lateral_cg_authority
+
+    def montar(pares):
+        return parametric_layout(
+            pairs=pares,
+            axial=[AxialNozzleSpec("dorsal", -0.15, 0.10)],
+            thrust_max_N=to_si(35.0, "kgf"),
+            idle_fraction=0.10,
+        )
+
+    so_inclinacao = montar(
+        [
+            ArmPairSpec(0.32, 0.35, -0.20, math.radians(15.0)),
+            ArmPairSpec(0.20, 0.35, -0.20, math.radians(30.0)),
+            ArmPairSpec(0.08, 0.35, -0.20, math.radians(45.0)),
+        ]
+    )
+    altura_e_envergadura = montar(
+        [
+            ArmPairSpec(0.32, 0.25, -0.15, math.radians(25.0)),
+            ArmPairSpec(0.20, 0.35, -0.26, math.radians(25.0)),
+            ArmPairSpec(0.08, 0.45, -0.37, math.radians(25.0)),
+        ]
+    )
+
+    assert lateral_cg_authority(so_inclinacao) is True
+    assert lateral_cg_authority(altura_e_envergadura) is False
+
+
+def test_posto_nao_e_margem():
+    """⚠ Alcancar uma direcao nao e ter autoridade nela.
+
+    As variantes que conseguem rolagem pura tem menor valor singular varias vezes
+    menor que as que nao conseguem. A direcao existe e exige redistribuicao enorme
+    de empuxo, o que a torna pouco util na pratica.
+    """
+    from hero_atlas.airframe.geometry import ArmPairSpec, AxialNozzleSpec, parametric_layout
+    from hero_atlas.analysis.authority import analyse_authority, lateral_cg_authority
+
+    def montar(pares):
+        return parametric_layout(
+            pairs=pares,
+            axial=[AxialNozzleSpec("dorsal", -0.15, 0.10)],
+            thrust_max_N=to_si(35.0, "kgf"),
+            idle_fraction=0.10,
+        )
+
+    com_rolagem = montar(
+        [
+            ArmPairSpec(0.32, 0.35, -0.20, math.radians(15.0)),
+            ArmPairSpec(0.20, 0.35, -0.20, math.radians(30.0)),
+            ArmPairSpec(0.08, 0.35, -0.20, math.radians(45.0)),
+        ]
+    )
+    sem_rolagem = montar(
+        [
+            ArmPairSpec(0.32, 0.35, -0.15, math.radians(25.0)),
+            ArmPairSpec(0.20, 0.35, -0.26, math.radians(25.0)),
+            ArmPairSpec(0.08, 0.35, -0.37, math.radians(25.0)),
+        ]
+    )
+
+    assert lateral_cg_authority(com_rolagem) is True
+    assert lateral_cg_authority(sem_rolagem) is False
+
+    # e no entanto a que consegue tem a direcao mais fraca
+    forte = analyse_authority(sem_rolagem).smallest_nonzero_singular
+    fraca = analyse_authority(com_rolagem).smallest_nonzero_singular
+    assert fraca < forte / 3.0, (
+        f"a variante com rolagem pura tem sing. {fraca:.4f} contra {forte:.4f}: "
+        "posto diz que da, valor singular diz que mal da"
+    )
+
+
+def test_objetivo_do_trim_muda_o_resultado():
+    """⚠ Minimizar empuxo encosta nos limites **por construcao**.
+
+    Medir folga num trim de minimo empuxo reporta zero quase sempre, e isso e
+    propriedade do objetivo, nao da arquitetura. Foi um artefato real na primeira
+    versao da varredura de geometria.
+    """
+    from hero_atlas.analysis.trim import TrimObjective
+
+    geo = layout()
+    economico = solve_trim(
+        geo,
+        mass_kg=117.0,
+        center_of_mass_body_m=CG_VIAVEL,
+        objective=TrimObjective.MIN_THRUST,
+    )
+    folgado = solve_trim(
+        geo,
+        mass_kg=117.0,
+        center_of_mass_body_m=CG_VIAVEL,
+        objective=TrimObjective.MAX_MARGIN,
+    )
+
+    assert economico.feasible and folgado.feasible
+    assert economico.margin_N == pytest.approx(0.0, abs=1e-6)
+    assert folgado.margin_N > 50.0, "o trim folgado tem margem real"
+    assert len(economico.active_constraints) > 0, "o economico encosta em limite"
+    assert len(folgado.active_constraints) == 0, "o folgado nao encosta"
+
+
+def test_margem_custa_pouco_empuxo():
+    """O trim folgado gasta so um pouco mais que o economico.
+
+    E o que torna a escolha de objetivo uma decisao de diagnostico, nao de projeto:
+    a diferenca de empuxo e pequena e a diferenca de informacao e enorme.
+    """
+    from hero_atlas.analysis.trim import TrimObjective
+
+    geo = layout()
+    economico = solve_trim(
+        geo, mass_kg=117.0, center_of_mass_body_m=CG_VIAVEL, objective=TrimObjective.MIN_THRUST
+    )
+    folgado = solve_trim(
+        geo, mass_kg=117.0, center_of_mass_body_m=CG_VIAVEL, objective=TrimObjective.MAX_MARGIN
+    )
+
+    excesso = folgado.total_thrust_N / economico.total_thrust_N - 1.0
+    assert 0.0 < excesso < 0.05, f"excesso de {excesso:.1%}"

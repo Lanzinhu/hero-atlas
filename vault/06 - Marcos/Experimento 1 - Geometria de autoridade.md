@@ -43,13 +43,56 @@ precisam gerar tres grandezas: forca lateral, rolagem e guinada.
 
 ## ⚠ E contagem de pares NAO basta
 
-Achado que corrige a intuicao obvia. **Tres pares diferindo so em altura continuam falhando**, com
-posto antissimetrico 2 de 3. As contribuicoes ficam linearmente dependentes.
+**Tres pares diferindo so em altura continuam falhando.** As contribuicoes antissimetricas ficam
+linearmente dependentes.
 
-Os pares precisam diferir em **envergadura, altura e inclinacao** para que as tres contribuicoes
-sejam independentes.
+"Mais propulsores resolve" e falso. **Colunas mais diversas** resolve.
 
-"Mais propulsores resolve" e falso. **Propulsores mais diversos** resolve.
+### ⚠ Correcao de uma afirmacao minha
+
+Eu havia escrito que os pares precisam diferir em **envergadura, altura e inclinacao**, nos tres.
+Testado, e **falso**:
+
+| Variacao entre os tres pares | Posto | Rolagem pura |
+|---|---|---|
+| so altura | 4/6 | nao |
+| so envergadura | 4/6 | nao |
+| altura + envergadura | 4/6 | nao |
+| **so inclinacao** | **5/6** | **SIM** |
+| envergadura + inclinacao | 5/6 | SIM |
+| altura + inclinacao | 5/6 | SIM |
+| os tres | 5/6 | SIM |
+
+Nesta familia, **diferenca de inclinacao sozinha ja basta**, e altura mais envergadura juntas nao
+bastam.
+
+E a condicao geral nao e nenhum parametro especifico: e **posto da matriz de alocacao**. Qualquer
+geometria que gere colunas independentes serve, e a varredura testou uma familia so.
+
+## ⚠ Posto nao e margem
+
+| Variante | Rolagem pura | Menor valor singular |
+|---|---|---|
+| tres pares, so altura | nao | 0,1245 |
+| tres pares, so inclinacao | **SIM** | **0,0306** |
+| 3 pares, tudo escalonado | SIM | **0,0206** |
+
+As que conseguem rolagem pura tem a direcao mais fraca **cinco a seis vezes menor**. A direcao
+existe e exige redistribuicao enorme de empuxo para ser usada.
+
+Alcancar nao e ter autoridade.
+
+## ⚠ Artefato do objetivo, corrigido
+
+A primeira versao desta varredura reportava **folga zero** em quase toda arquitetura. Era artefato:
+o solver minimizava empuxo total, o que encosta nos limites **por construcao**.
+
+Com trim de margem maxima, a folga real aparece, e custa menos de 1 por cento de empuxo a mais:
+
+| Arquitetura | Folga real |
+|---|---|
+| cinco bocais | 5,5 a 9,2 kgf |
+| sete bocais | 14,5 a 15,6 kgf |
 
 ## Um conflito de projeto aparece
 

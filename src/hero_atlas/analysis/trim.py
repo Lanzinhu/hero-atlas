@@ -34,6 +34,7 @@ from ..units import G0
 from ..verdict import Verdict
 
 __all__ = [
+    "TrimObjective",
     "TrimTarget",
     "InfeasibilityCause",
     "TrimSolution",
@@ -66,6 +67,24 @@ class InfeasibilityCause(StrEnum):
     GEOMETRICALLY_UNATTAINABLE = "geometrically_unattainable"
     BOUNDS_INFEASIBLE = "bounds_infeasible"
     NO_ACTUATORS = "no_actuators"
+
+
+class TrimObjective(StrEnum):
+    """O que o trim otimiza, entre as infinitas solucoes de equilibrio.
+
+    ⚠ A escolha **muda o resultado**, e confundi-las produz diagnostico errado.
+
+    ``MIN_THRUST`` minimiza a soma de empuxos. E o trim mais economico, e por
+    construcao ele encosta nos limites: a solucao fica na fronteira do politopo.
+    Medir folga nele reporta zero quase sempre, e isso e propriedade do objetivo,
+    **nao da arquitetura**.
+
+    ``MAX_MARGIN`` maximiza a menor distancia ate qualquer limite. E o trim mais
+    folgado, e e ele que responde "quanta autoridade sobra depois de pairar".
+    """
+
+    MIN_THRUST = "min_thrust"
+    MAX_MARGIN = "max_margin"
 
 
 class TrimTarget(StrEnum):
@@ -121,6 +140,8 @@ class TrimSolution:
     achieved_wrench: NDArray[np.float64]
     active_constraints: tuple[str, ...]
     model_status: ModelStatus
+    objective: TrimObjective = TrimObjective.MIN_THRUST
+    margin_N: float = 0.0
     cause: InfeasibilityCause = InfeasibilityCause.NONE
     unattainable_component: NDArray[np.float64] | None = None
     message: str = ""
@@ -163,6 +184,7 @@ def solve_trim(
     mass_kg: float,
     center_of_mass_body_m: ArrayLike,
     target: TrimTarget = TrimTarget.LEVEL_HOVER,
+    objective: TrimObjective = TrimObjective.MIN_THRUST,
     rotation_body_from_inertial: ArrayLike | None = None,
     model_status: ModelStatus = PROPULSAO_INSTALADA_HOJE,
 ) -> TrimSolution:
@@ -215,14 +237,38 @@ def solve_trim(
     momento_do_peso = np.cross(braco_cg, peso_B)
     wrench_requerido = np.concatenate([-peso_B, -momento_do_peso])
 
-    limites = [(n.thrust_min_N, n.thrust_max_N) for n in disponiveis]
-    resultado = linprog(
-        c=np.ones(len(disponiveis)),
-        A_eq=W,
-        b_eq=wrench_requerido,
-        bounds=limites,
-        method="highs",
-    )
+    n = len(disponiveis)
+    limites = [(b.thrust_min_N, b.thrust_max_N) for b in disponiveis]
+
+    if objective is TrimObjective.MIN_THRUST:
+        resultado = linprog(
+            c=np.ones(n), A_eq=W, b_eq=wrench_requerido, bounds=limites, method="highs"
+        )
+        margem = 0.0
+    else:
+        # variavel extra t: maximiza a menor folga ate qualquer limite
+        #   T_min + t <= T_i <= T_max - t
+        A_ub = np.zeros((2 * n, n + 1))
+        b_ub = np.zeros(2 * n)
+        for i, bocal in enumerate(disponiveis):
+            A_ub[i, i] = -1.0
+            A_ub[i, n] = 1.0
+            b_ub[i] = -bocal.thrust_min_N
+            A_ub[n + i, i] = 1.0
+            A_ub[n + i, n] = 1.0
+            b_ub[n + i] = bocal.thrust_max_N
+        resultado = linprog(
+            c=np.concatenate([np.zeros(n), [-1.0]]),
+            A_ub=A_ub,
+            b_ub=b_ub,
+            A_eq=np.column_stack([W, np.zeros(6)]),
+            b_eq=wrench_requerido,
+            bounds=[*limites, (0.0, None)],
+            method="highs",
+        )
+        margem = float(resultado.x[n]) if resultado.success else 0.0
+        if resultado.success:
+            resultado.x = resultado.x[:n]
 
     nomes = tuple(n.name for n in disponiveis)
 
@@ -231,14 +277,15 @@ def solve_trim(
         return TrimSolution(
             status=Verdict.VIOLATED,
             target=target,
-            thrusts_N=np.zeros(len(disponiveis)),
+            thrusts_N=np.zeros(n),
             nozzle_names=nomes,
             required_wrench=wrench_requerido,
             achieved_wrench=np.zeros(6),
-            active_constraints=_limites_ativos(np.zeros(len(disponiveis)), disponiveis),
+            active_constraints=_limites_ativos(np.zeros(n), disponiveis),
             model_status=model_status,
             cause=causa,
             unattainable_component=componente,
+            objective=objective,
             message=_explicar(causa, componente),
         )
 
@@ -256,6 +303,8 @@ def solve_trim(
         achieved_wrench=alcancado,
         active_constraints=_limites_ativos(empuxos, disponiveis),
         model_status=model_status,
+        objective=objective,
+        margin_N=margem,
         message="" if status is Verdict.SATISFIED else f"residuo {residuo:.3e}",
     )
 
