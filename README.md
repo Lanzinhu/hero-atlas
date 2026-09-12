@@ -202,6 +202,35 @@ são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
 Resultado que muda sem motivo declarado vira **diff visível** ao lado da mudança de código que o
 causou, e não surpresa silenciosa.
 
+## CAD conceitual, em dois processos
+
+⚠ **FreeCAD não é dependência do projeto e não pode ser.** O núcleo importa apenas NumPy, SciPy e
+pydantic, e há um motivo duro além do arquitetural: o FreeCAD 1.1 traz Python 3.11 enquanto o
+projeto roda em 3.12, e `FreeCAD.pyd` é binário. Não há como importar um no outro.
+
+A ponte é por arquivo, como todo deck do projeto:
+
+```bash
+# processo 1, no Python do FreeCAD: exporta propriedades de massa
+"C:/Program Files/FreeCAD 1.1/bin/python.exe" tools/freecad_export.py modelo.FCStd docs/decks/traje.json --z-para-baixo
+
+# processo 2, no Python do projeto: lê, converte unidade e agrega
+./.venv/Scripts/python.exe -c "from hero_atlas.airframe.cad_deck import load_cad_deck; ..."
+```
+
+A conversão de unidade mora num lugar só, em [`cad_deck.py`](src/hero_atlas/airframe/cad_deck.py),
+com teste contra solução analítica de caixa e de cilindro:
+
+```
+I_kg_m2 = I_freecad * (massa_kg / volume_mm3) * 1e-6
+```
+
+O FreeCAD calcula com **densidade unitária** e comprimento em milímetro. Esquecer o fator de
+milhão é óbvio; esquecer a divisão pelo volume **não é**, e produz inércia errada por um fator da
+ordem da densidade, que a simulação aceita sem reclamar.
+
+O que modelar está em [`docs/resultados/briefing-cad.txt`](docs/resultados/).
+
 ## Como rodar
 
 ```bash

@@ -38,6 +38,12 @@ def smoke(session: nox.Session) -> None:
     session.run("pytest", "tests/validation", "-q")
 
 
+# ⚠ `tools/freecad_export.py` NAO entra em nenhuma sessao. Ele roda no Python do
+# FreeCAD, versao 3.11, e nao importa no ambiente do projeto, 3.12. O lint estatico
+# passa nele porque nao executa; a suite nao o importa, e o teste de deck exercita o
+# lado do nucleo com arquivo fixo, sem exigir FreeCAD instalado.
+
+
 @nox.session(python=PY)
 def resultados(session: nox.Session) -> None:
     """Os resultados versionados estao atualizados em relacao ao codigo?

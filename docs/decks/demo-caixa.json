@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "source_document": "demo, caixa 100x200x300 mm",
+  "exported_at": "2026-09-12T12:33:30",
+  "z_axis_down": true,
+  "components": [
+    {
+      "name": "caixa_de_referencia",
+      "mass_kg": 1.0,
+      "material": "fictício, massa declarada",
+      "volume_mm3": 6000000.0,
+      "center_of_mass_mm": [
+        50.0,
+        100.0,
+        150.0
+      ],
+      "inertia_matrix": [
+        [
+          65000000000.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          50000000000.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          25000000000.0
+        ]
+      ],
+      "orientation": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ]
+}
