@@ -448,10 +448,21 @@ class MissionEnergyResult:
     exigido e a distancia a fronteira do conjunto atingivel. Tambem nao diz nada
     sobre autoridade **dinamica**, que depende de rampa e atraso.
 
-    Zero aqui significa que pelo menos um propulsor nao pode subir empuxo, o que e
-    condicao necessaria de perda de autoridade naquela direcao, nunca suficiente para
-    concluir sobre controlabilidade. A margem de wrench continua sendo outra grandeza,
-    com normalizacao propria, em :mod:`hero_atlas.analysis.authority`.
+    **O que zero aqui significa, exatamente.** Pelo menos um propulsor esta no teto,
+    entao o conjunto de variacoes admissiveis de empuxo perdeu uma direcao: aquele
+    bocal so pode descer. Isso e **evidencia de saturacao local**, e nada alem disso.
+
+    ⚠ Nao e condicao **suficiente** para perda de autoridade: os outros propulsores
+    continuam podendo subir, e o wrench desejado pode continuar atingivel por eles.
+
+    ⚠ E tambem **nao e condicao necessaria**: uma geometria de posto deficiente perde
+    direcoes de wrench com **todos** os propulsores longe do teto. Saturacao e falta de
+    posto sao mecanismos distintos de perda de autoridade, e esta grandeza so enxerga o
+    primeiro.
+
+    Perda de um wrench especifico tem que ser demonstrada pela margem de wrench ou pela
+    alocacao sob restricoes, em :mod:`hero_atlas.analysis.authority`, nunca inferida
+    daqui.
     """
     initial_gross_kg: float
     final_gross_kg: float

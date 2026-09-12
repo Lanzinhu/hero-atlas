@@ -3,7 +3,7 @@
 import nox
 
 nox.options.default_venv_backend = "venv"
-nox.options.sessions = ["lint", "test"]
+nox.options.sessions = ["lint", "test", "resultados"]
 
 PY = "3.12"
 
@@ -36,3 +36,33 @@ def smoke(session: nox.Session) -> None:
     session.install("-e", ".")
     session.install("pytest")
     session.run("pytest", "tests/validation", "-q")
+
+
+@nox.session(python=PY)
+def resultados(session: nox.Session) -> None:
+    """Os resultados versionados estao atualizados em relacao ao codigo?
+
+    Regenera ``docs/resultados/`` e **falha se o Git acusar diferenca**.
+
+    O motivo e concreto. As saidas dos experimentos sao lidas por quem revisa o
+    projeto sem executar nada, e uma mudanca de codigo que altere um numero sem
+    atualizar o artefato publicado deixaria o repositorio afirmando uma coisa e
+    calculando outra. Com esta sessao, alterar o resultado passa a **exigir**
+    regenerar e revisar o diff, que e onde a mudanca fica visivel.
+
+    ⚠ Depende de as saidas serem deterministicas. Sao: nenhuma delas imprime data,
+    tempo de execucao ou valor aleatorio. Se alguma passar a imprimir, esta sessao
+    comeca a falhar sem motivo real, e a correcao e tirar o campo instavel da saida,
+    nunca relaxar a verificacao.
+    """
+    session.install("-e", ".")
+    session.run("python", "tools/refresh_results.py")
+    session.run(
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "docs/resultados/",
+        external=True,
+        success_codes=[0],
+    )

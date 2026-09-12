@@ -126,9 +126,17 @@ exatamente. Maximizar folga preserva capacidade de subir empuxo e gasta mais.
 
 ⚠ **A grandeza medida é `min_upper_thrust_headroom_ratio`, não a margem de wrench.**
 Ela é `min_i (1 − T_i/T_i_max)`, e ignora `T_min`, a geometria da matriz de alocação,
-as direções possíveis de variação, o wrench exigido e toda a autoridade dinâmica. Zero
-aqui é condição **necessária** de perda de autoridade para cima, nunca suficiente para
-concluir sobre controlabilidade. A conclusão completa exige a margem de wrench.
+as direções possíveis de variação, o wrench exigido e toda a autoridade dinâmica.
+
+Zero aqui é **evidência de saturação local**: um bocal no teto só pode descer, então o
+conjunto de variações admissíveis perdeu uma direção. Não é condição **suficiente** de
+perda de autoridade, porque os outros bocais continuam podendo subir. E não é condição
+**necessária**, porque uma geometria de posto deficiente perde direções de wrench com
+todos os bocais longe do teto. Saturação e falta de posto são mecanismos distintos, e
+esta grandeza só enxerga o primeiro.
+
+A perda de um wrench específico tem que ser demonstrada pela margem de wrench ou pela
+alocação sob restrições, nunca inferida daqui.
 
 Autonomia e folga puxam para lados opostos, e a escolha é de projeto, não de solver.
 Fixado em `test_trim_de_menor_consumo_gasta_toda_a_margem_de_controle`.

@@ -113,9 +113,9 @@ E aparece um conflito que nenhuma das duas análises via sozinha: o trim de **me
 encosta um par de bocais no teto, então a folga superior de empuxo vai a zero exatamente.
 
 ⚠ Folga de empuxo não é margem de wrench. `min_upper_thrust_headroom_ratio` mede só a distância
-ao teto do propulsor mais carregado, e ignora a geometria da alocação, o wrench exigido e toda a
-autoridade dinâmica. Zero ali é condição necessária de perda de autoridade para cima, nunca
-suficiente para concluir sobre controlabilidade.
+ao teto do propulsor mais carregado. Zero ali é **evidência de saturação local**, e nada além:
+não é suficiente para perda de autoridade, porque os outros bocais ainda podem subir, e nem
+necessária, porque posto deficiente perde direções com todos os bocais longe do teto.
 
 ## Números de referência, e o que eles valem
 
