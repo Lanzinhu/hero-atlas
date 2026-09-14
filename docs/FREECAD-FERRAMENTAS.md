@@ -36,7 +36,7 @@ volta.
 
 ---
 
-## 2. As três macros, já instaladas
+## 2. As macros, já instaladas
 
 Em `C:\Users\alanl\AppData\Roaming\FreeCAD\v1-1\Macro\`. Aparecem em **Macro > Macros**.
 
@@ -84,7 +84,9 @@ erros plantados de propósito.
 
 ### `HeroAtlas_Ponte`
 
-A conexão ao vivo. Ligue pelo menu Macro; para desligar, rode de novo.
+A conexão ao vivo. `HeroAtlas_Ponte` **sempre liga**; para desligar, rode `HeroAtlas_PonteDesligar`.
+
+⚠ Uma versão anterior usava a mesma macro como interruptor, e rodar com a ponte já registrada **desligava** sem aviso claro. Aconteceu: a ponte foi "ligada" e ficou desligada. Agora a macro de ligar verifica se o servidor registrado ainda escuta; se não escuta, limpa o registro morto e religa.
 
 ```bash
 ./.venv/Scripts/python.exe tools/ponte.py --estado
@@ -103,6 +105,7 @@ Três coisas limitam isso:
 |---|---|
 | Endereço `127.0.0.1` | nada vindo da rede alcança, só esta máquina |
 | Você liga | não sobe sozinha, e morre quando o FreeCAD fecha |
+| Desligar é outra macro | não há como desligar sem querer ao tentar ligar |
 | Tudo é impresso antes de executar | você vê no console o que está sendo feito |
 
 ⚠ **Desligue quando não estiver colaborando.** Não é coisa para deixar ligada.

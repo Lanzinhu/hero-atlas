@@ -1,6 +1,12 @@
 """Ponte ao vivo: deixa o assistente operar o FreeCAD aberto, por socket local.
 
-Macro do FreeCAD. Menu Macro, executar. Para parar, rode de novo.
+Macro do FreeCAD. Menu Macro, executar. Esta macro SEMPRE LIGA.
+Para desligar, use a macro HeroAtlas_PonteDesligar.
+
+ATENCAO: uma versao anterior era um interruptor, e rodar duas vezes desligava sem
+aviso claro. Isso ja aconteceu: a pessoa rodou para ligar e a ponte ficou desligada.
+Agora ligar e desligar sao macros separadas, e esta verifica se a ponte registrada
+ainda esta viva antes de decidir.
 
 COMO FUNCIONA
 
@@ -13,16 +19,16 @@ O QUE ISSO SIGNIFICA, EM PORTUGUES CLARO
     Enquanto a ponte estiver ligada, qualquer programa desta maquina que conecte na
     porta 8765 executa Python dentro do seu FreeCAD. Nao ha senha.
 
-    A porta e 127.0.0.1, ou seja **so esta maquina**: nada vindo da rede alcanca. E a
-    ponte so existe enquanto voce a liga, e morre quando o FreeCAD fecha.
+    A porta e 127.0.0.1, ou seja so esta maquina: nada vindo da rede alcanca. E a ponte
+    so existe enquanto voce a liga, e morre quando o FreeCAD fecha.
 
-    Toda linha recebida e IMPRESSA no console do FreeCAD antes de executar, entao voce
-    ve tudo o que esta sendo feito. Se aparecer algo que voce nao pediu, rode a macro de
-    novo para desligar.
+    Toda linha recebida e IMPRESSA no console do FreeCAD antes de executar. Se aparecer
+    algo que voce nao pediu, rode HeroAtlas_PonteDesligar.
 
-ATENCAO: desligue quando nao estiver colaborando. Nao e uma coisa para deixar ligada.
+ATENCAO: desligue quando nao estiver colaborando.
 """
 
+import contextlib
 import io
 import json
 import socket
@@ -38,24 +44,28 @@ LIMITE_BYTES = 1_000_000
 _CHAVE = "_hero_atlas_ponte"
 
 
-def _desliga():
-    """Fecha o que estiver aberto de uma execucao anterior."""
+def _esta_escutando() -> bool:
+    """Tenta conectar na propria porta. Verdadeiro se alguem aceita a conexao."""
+    try:
+        with socket.create_connection((HOST, PORT), timeout=0.5):
+            return True
+    except OSError:
+        return False
+
+
+def _limpa_estado_morto() -> None:
     estado = getattr(App, _CHAVE, None)
     if not estado:
-        return False
-    try:
+        return
+    with contextlib.suppress(Exception):
         estado["timer"].stop()
-    except Exception:
-        pass
-    try:
+    with contextlib.suppress(Exception):
         estado["servidor"].close()
-    except Exception:
-        pass
-    delattr(App, _CHAVE)
-    return True
+    with contextlib.suppress(Exception):
+        delattr(App, _CHAVE)
 
 
-def _atende(servidor):
+def _atende(servidor) -> None:
     """Aceita no maximo uma conexao por disparo, para nao segurar a interface."""
     try:
         conexao, _ = servidor.accept()
@@ -64,13 +74,11 @@ def _atende(servidor):
 
     try:
         conexao.settimeout(10.0)
-
-        # protocolo: primeira linha e o tamanho em bytes, depois o codigo
         cabecalho = b""
         while not cabecalho.endswith(b"\n"):
             pedaco = conexao.recv(1)
             if not pedaco:
-                return
+                return  # conexao de teste de vida, ou cliente desistiu
             cabecalho += pedaco
             if len(cabecalho) > 32:
                 return
@@ -88,10 +96,8 @@ def _atende(servidor):
             if not pedaco:
                 return
             corpo += pedaco
-
         codigo = corpo.decode("utf-8")
 
-        # ATENCAO: imprime ANTES de executar, para voce ver o que esta acontecendo.
         print("=" * 66)
         print("PONTE recebeu:")
         for linha in codigo.splitlines():
@@ -100,11 +106,7 @@ def _atende(servidor):
 
         saida = io.StringIO()
         resposta = {"ok": True}
-        escopo = {
-            "App": App,
-            "FreeCAD": App,
-            "doc": App.ActiveDocument,
-        }
+        escopo = {"App": App, "FreeCAD": App, "doc": App.ActiveDocument}
         try:
             import FreeCADGui as Gui  # noqa: PLC0415
 
@@ -112,8 +114,6 @@ def _atende(servidor):
             escopo["FreeCADGui"] = Gui
         except ImportError:
             pass
-
-        import contextlib  # noqa: PLC0415
 
         try:
             with contextlib.redirect_stdout(saida):
@@ -135,16 +135,20 @@ def _atende(servidor):
         print("PONTE: falha ao atender")
         print(traceback.format_exc())
     finally:
-        try:
+        with contextlib.suppress(Exception):
             conexao.close()
-        except Exception:
-            pass
 
 
-def main():
-    if _desliga():
-        print("PONTE DESLIGADA. Rode de novo para ligar.")
-        return
+def main() -> None:
+    if getattr(App, _CHAVE, None):
+        if _esta_escutando():
+            print("=" * 66)
+            print(f"PONTE JA ESTAVA LIGADA em {HOST}:{PORT}. Nada mudou.")
+            print("Para desligar: macro HeroAtlas_PonteDesligar.")
+            print("=" * 66)
+            return
+        print("PONTE: havia um registro antigo sem servidor vivo. Limpando e religando.")
+        _limpa_estado_morto()
 
     from PySide import QtCore  # noqa: PLC0415
 
@@ -153,9 +157,12 @@ def main():
     try:
         servidor.bind((HOST, PORT))
     except OSError as erro:
-        print(f"PONTE: nao consegui abrir a porta {PORT}: {erro}")
-        print("Outra instancia pode estar usando. Feche e tente de novo.")
         servidor.close()
+        print("=" * 66)
+        print(f"PONTE NAO LIGOU: a porta {PORT} esta ocupada ({erro}).")
+        print("Provavel: outra janela do FreeCAD com a ponte ligada. Feche as outras")
+        print("janelas do FreeCAD, ou rode HeroAtlas_PonteDesligar nelas.")
+        print("=" * 66)
         return
     servidor.listen(1)
     servidor.setblocking(False)
@@ -163,7 +170,6 @@ def main():
     temporizador = QtCore.QTimer()
     temporizador.timeout.connect(lambda: _atende(servidor))
     temporizador.start(INTERVALO_MS)
-
     setattr(App, _CHAVE, {"servidor": servidor, "timer": temporizador})
 
     print("=" * 66)
@@ -171,11 +177,10 @@ def main():
     print()
     print("Enquanto estiver ligada, qualquer programa DESTA MAQUINA que conecte")
     print("nesta porta executa Python dentro do FreeCAD. Nao ha senha.")
-    print()
     print("Nada vindo da rede alcanca: a porta e so 127.0.0.1.")
     print("Tudo o que chegar aparece aqui neste console antes de executar.")
     print()
-    print("Para DESLIGAR: rode esta macro de novo.")
+    print("Para DESLIGAR: macro HeroAtlas_PonteDesligar.")
     print("=" * 66)
 
 

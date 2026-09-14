@@ -1,0 +1,31 @@
+"""Desliga a ponte ao vivo. Macro do FreeCAD. Menu Macro, executar.
+
+Separada de HeroAtlas_Ponte de proposito: uma versao anterior usava a mesma macro
+para ligar e desligar, e rodar duas vezes desligava sem a pessoa perceber.
+"""
+
+import contextlib
+
+import FreeCAD as App
+
+_CHAVE = "_hero_atlas_ponte"
+
+
+def main() -> None:
+    estado = getattr(App, _CHAVE, None)
+    if not estado:
+        print("PONTE: ja estava desligada. Nada a fazer.")
+        return
+    with contextlib.suppress(Exception):
+        estado["timer"].stop()
+    with contextlib.suppress(Exception):
+        estado["servidor"].close()
+    with contextlib.suppress(Exception):
+        delattr(App, _CHAVE)
+    print("=" * 66)
+    print("PONTE DESLIGADA. Nenhum programa consegue mais operar este FreeCAD.")
+    print("Para ligar de novo: macro HeroAtlas_Ponte.")
+    print("=" * 66)
+
+
+main()
