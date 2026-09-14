@@ -1,0 +1,56 @@
+# GERADO AUTOMATICAMENTE por tools/refresh_results.py
+# Nao edite a mao. Rode:  ./.venv/Scripts/python.exe tools/refresh_results.py
+#
+# Todos os numeros abaixo sao CONDICIONAIS a geometria plausivel e nao medida, a
+# consumo especifico de catalogo extrapolado para pairado, e a parametros de energia
+# declarados sem copia arquivada. Nada aqui representa hardware.
+
+ORCAMENTO DE MASSA DO TRAJE INTEIRO
+somado pelo agregador do projeto; posicoes de tanque e estrutura do guia
+
+  piloto em pairado          80.00 kg  cg ( +29.5,  -0.0, +270.7) mm  Ixx  13.75  Iyy  13.55  Izz  2.32  Ixz +0.49
+  sete turbinas K-260G4      15.40 kg  cg (+132.9,  +0.0, -336.1) mm  Ixx   2.80  Iyy   0.91  Izz  2.96  Ixz +0.06
+  estrutura, 12 kg           12.00 kg  cg (  +9.6,  +0.0,  -85.2) mm  Ixx   1.28  Iyy   0.99  Izz  1.11  Ixz +0.23
+  combustivel, 20 kg         20.00 kg  cg (-220.0,  +0.0,  +50.0) mm  Ixx   0.42  Iyy   0.34  Izz  0.22  Ixz -0.00
+  --------------------------------------------------------------------------------------------------------------
+  TRAJE COMPLETO            127.40 kg  cg (  +1.0,  +0.0, +129.2) mm  Ixx  23.85  Iyy  22.72  Izz  7.93  Ixz +1.08
+  assumido ate hoje         115.00 kg  cg (+157.5,  +0.0,   +0.0) mm  Ixx  32.20  Iyy  32.20  Izz  2.30  Ixz +0.00
+
+RAZAO modelado / assumido
+  Ixx 0.74x
+  Iyy 0.71x
+  Izz 3.45x   <-- guinada
+
+  ATENCAO: a checagem de sensibilidade a inercia do experimento 6 escalou os
+  tres eixos JUNTOS, de 0,7 a 1,6 vezes. Uma guinada 3,4 vezes maior esta fora
+  da faixa testada, e o experimento 4 usou tensor diagonal, sem o Ixz acima.
+
+O TRIM FECHA COM ESTE TRAJE?
+
+  --- classe generica 35 kgf ---
+  trim no centro modelado, x = +1.0 mm: NAO FECHA (bounds_infeasible)
+  janela longitudinal viavel: +115 a +210 mm
+  o centro esta 114 mm ATRAS do limite traseiro
+  so movendo o tanque: 726 mm para frente, de x = -220 para x = +506 mm
+  ou lastro no bocal dianteiro, x = +320 mm: 70.9 kg
+
+  --- K-260G4 real, 26 kgf ---
+  trim no centro modelado, x = +1.0 mm: NAO FECHA (bounds_infeasible)
+  janela longitudinal viavel: +145 a +210 mm
+  o centro esta 144 mm ATRAS do limite traseiro
+  so movendo o tanque: 917 mm para frente, de x = -220 para x = +697 mm
+  ou lastro no bocal dianteiro, x = +320 mm: 104.9 kg
+
+LEITURA
+
+  As duas correcoes sao absurdas: um tanque na frente do peito, ou um lastro
+  maior que o proprio piloto. Isso nao e ajuste fino. E incompatibilidade entre
+  a geometria A, cuja janela de trim fica bem a frente, e um tanque nas costas.
+
+  E ha uma segunda reprovacao, independente, no portao de envelope: a turbina
+  dorsal fica dentro das costas do piloto. Ver docs/resultados/portao-envelope.txt.
+
+  HIPOTESE NAO TESTADA: recuar o bocal dorsal resolveria a colisao e, ao mesmo
+  tempo, puxaria a janela de trim para tras, na direcao do centro modelado. O
+  guia de modelagem manda parar e avisar quando um portao reprova, entao a
+  tabela de coordenadas NAO foi alterada aqui.

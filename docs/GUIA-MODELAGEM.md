@@ -149,6 +149,16 @@ A ordem importa. O passo 3 é um **portão**: se ele reprovar, pare.
 
 ### Passo 1 — Manequim do piloto
 
+⚠ **Já existe um manequim pronto**, gerado por `tools/freecad_mannequin.py`, em
+`docs/decks/manequim/manequim_pairado.FCStd`. Catorze segmentos, 80 kg, articulado nos
+ombros e cotovelos. Abra no FreeCAD em vez de modelar do zero. A tabela abaixo continua
+valendo como referência de ordem de grandeza, mas o arquivo é a fonte usada pelo
+simulador.
+
+Para um corpo **visualmente realista**, o MakeHuman gera malha paramétrica e exporta em
+STL e OBJ sob licença CC0. Serve para o portão de envelope. **Não serve para massa**:
+malha não tem distribuição de densidade e costuma não ser sólido fechado.
+
 **Propósito:** envelope e massa. Não precisa ser bonito, precisa ser do tamanho certo.
 
 Modele como sólidos primitivos, um por segmento, porque o simulador quer propriedades
@@ -272,6 +282,23 @@ nos experimentos, esses números eram 80,7 kg e 38,8%.
 
 Ou seja: o orçamento de 12 kg de estrutura passa a ser o número que decide se fecha. Se
 a estrutura real der 25 kg em vez de 12, ainda fecha; se der 40, não fecha.
+
+### ⚠ Resultado já calculado: o portão REPROVA
+
+Com o manequim modelado, `tools/freecad_envelope_gate.py` responde a pergunta 1:
+
+| Turbina | Folga real | Envelope de 180 mm invade |
+|---|---:|---|
+| seis de braço | 90 a 182 mm | não |
+| **dorsal** | **0 mm** | **tronco 2.090 cm³** |
+
+**A turbina dorsal fica dentro das costas do piloto.** E há um segundo problema,
+independente: com tanque e estrutura nas posições deste guia, o centro de massa do traje
+cai em x = +1 mm, e a geometria só fecha trim entre +145 e +210 mm com a K-260G4. Ver
+`docs/resultados/orcamento-traje.txt`.
+
+Modelar os passos 4 a 6 sobre esta tabela de coordenadas **não vale a pena** até a
+geometria ser revista. Os passos 1 e 2 continuam úteis para aprender a ferramenta.
 
 ⚠ **Se reprovar em qualquer uma das cinco, pare e avise.** A varredura de geometria
 roda de novo com restrição de envelope, e as coordenadas mudam. Continuar modelando

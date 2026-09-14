@@ -38,6 +38,7 @@ mesmo passo de integração.
 🎓 **[Trilha de aprendizado](docs/APRENDER.md)** — a física do projeto em onze paradas, no código que já existe.
 🔰 **[Primeiro CAD](docs/PRIMEIRO-CAD.md)** — nunca modelou nada? Comece aqui: três exercícios, uma hora.
 🧰 **[Ferramentas do FreeCAD](docs/FREECAD-FERRAMENTAS.md)** — macros instaladas, bancadas nativas e quais addons valem a pena.
+🧍 **Manequim do piloto** — `docs/decks/manequim/`, 14 segmentos, 80 kg, duas poses. Revelou dois portões reprovados: ver a seção 11c da especificação.
 
 | Marco | Entrega | Estado |
 |---|---|---|
@@ -198,6 +199,8 @@ são geradas e versionadas em [`docs/resultados/`](docs/resultados/):
 | `experimento-5-turbinas.txt` | três microturbinas de catálogo contra a especificação gerada |
 | `experimento-6-estrutura.txt` | espectro de excitação, cargas de fixação e sensibilidade à inércia |
 | `briefing-cad.txt` | o que modelar em CAD, com coordenadas em milímetros, e o que devolver ao simulador |
+| `orcamento-traje.txt` | massa e inércia do traje inteiro somadas peça a peça, e o veredito de trim: **não fecha** |
+| `portao-envelope.txt` | turbinas contra o corpo modelado: a dorsal fica **dentro das costas**. Gerado no Python do FreeCAD, fora do nox |
 
 ```bash
 ./.venv/Scripts/python.exe tools/refresh_results.py

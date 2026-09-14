@@ -1,0 +1,58 @@
+{
+  "cabeca_pescoco": {
+    "mass_kg": 5.552,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "tronco": {
+    "mass_kg": 34.768,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "braco_esq": {
+    "mass_kg": 2.168,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "antebraco_esq": {
+    "mass_kg": 1.296,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "mao_esq": {
+    "mass_kg": 0.488,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "braco_dir": {
+    "mass_kg": 2.168,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "antebraco_dir": {
+    "mass_kg": 1.296,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "mao_dir": {
+    "mass_kg": 0.488,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "coxa_esq": {
+    "mass_kg": 11.328,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "perna_esq": {
+    "mass_kg": 3.464,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "pe_esq": {
+    "mass_kg": 1.096,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "coxa_dir": {
+    "mass_kg": 11.328,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "perna_dir": {
+    "mass_kg": 3.464,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  },
+  "pe_dir": {
+    "mass_kg": 1.096,
+    "material": "segmento humano, densidade uniforme ASSUMIDA"
+  }
+}

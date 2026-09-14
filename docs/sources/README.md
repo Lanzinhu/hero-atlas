@@ -10,8 +10,10 @@ do registro, não alteração da página de origem.
 
 | Registro | SHA-256 |
 |---|---|
+| `de-leva-1996-segmentos-NAO-VERIFICADO.md` | `4f2aea7e6a436632b1c40fe6ce9207e7ea707dbfab5f8ed7d213481a3d8da094` |
 | `jetcat-p400-pro-ln-2026-09-12.md` | `d7cf1cb7a5a109697a4e0d16c587484198f154eb66d087d9603903491a6b234e` |
 | `kingtech-k210-k260-2026-09-12.md` | `a9e2c8e1e096fae07dba085f3a769fa8b7687500cb5f40313f80653e58f7a373` |
+| `matsuo-1995-inercia-corpo-inteiro.md` | `edde82b4de7439736347cc4f8b80893ad28dacde308e2c0868b16d845c9bd54b` |
 
 Recalcular:
 

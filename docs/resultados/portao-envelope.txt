@@ -1,0 +1,28 @@
+# GERADO por tools/freecad_envelope_gate.py, no Python do FreeCAD.
+# NAO entra na sessao 'resultados' do nox: regenere a mao.
+# gerado em 2026-09-13T21:42:02
+#
+PORTAO DE ENVELOPE: turbinas contra o corpo em pose de pairado
+manequim: docs/decks/manequim/manequim_pairado.FCStd
+turbinas: docs/decks/referencia/referencia.FCStd
+envelope com folga: diametro 180 mm
+
+turbina               folga real  segmento mais proximo   envelope invade
+--------------------------------------------------------------------------------------
+turbina_par0_esq           90 mm  braco_esq               nao
+turbina_par0_dir           90 mm  braco_dir               nao
+turbina_par1_esq          173 mm  braco_esq               nao
+turbina_par1_dir          173 mm  braco_dir               nao
+turbina_par2_esq          182 mm  braco_esq               nao
+turbina_par2_dir          182 mm  braco_dir               nao
+turbina_dorsal              0 mm  tronco                  cabeca_pescoco 35 cm3, tronco 2090 cm3
+
+turbina contra turbina, envelopes com folga:
+  turbina_par0_esq x turbina_par1_esq: 6 cm3
+  turbina_par0_dir x turbina_par1_dir: 6 cm3
+
+REPROVADO: 1 de 7 turbinas com contato ou invasao
+  turbina_dorsal
+
+ATENCAO: nao verifica o cone do jato, so o volume da turbina e sua folga.
+ATENCAO: corpo em solidos primitivos; folga zero nao depende desse detalhe.

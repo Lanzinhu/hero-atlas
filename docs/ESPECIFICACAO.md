@@ -464,6 +464,81 @@ K-260G4 dá 26 kgf, e com ela os números mudam:
 A folga de massa cai de 80,7 kg para **27,2 kg**, e o orçamento de 12 kg de estrutura
 passa a ser o número que decide se a conta fecha.
 
+## 11c. Manequim do piloto, e dois portões reprovados
+
+Um manequim articulado de 14 segmentos, 80 kg, em duas poses, gerado por
+`tools/freecad_mannequin.py` e versionado em `docs/decks/manequim/`.
+
+| O quê | Estado |
+|---|---|
+| Frações de massa por segmento | de Leva (1996), **não verificadas** em documento legível |
+| Centro e inércia de cada segmento | geometria do primitivo, densidade uniforme **assumida** |
+| Validação | só no corpo inteiro, contra Matsuo et al. (1995), **verificado** |
+
+Na pose anatômica, os momentos transversais dão 13,23 e 12,31 kg·m², contra 14,02 e
+13,00 da regressão de Matsuo extrapolada para 1,75 m e 80 kg. ⚠ É banda de sanidade,
+não validação: a regressão é de adolescentes deitados, e o resumo não define qual eixo
+é qual.
+
+⚠ **Incidente de fonte.** Um resumo automático de busca apresentou valores de inércia
+de adultos em pé e os atribuiu a um artigo que, lido diretamente, não contém inércia
+nenhuma. Os números foram descartados. Registro em
+`docs/sources/de-leva-1996-segmentos-NAO-VERIFICADO.md`.
+
+### O traje inteiro, somado
+
+`tools/suit_mass_budget.py`, resultado em `docs/resultados/orcamento-traje.txt`.
+
+| Grandeza | Modelado | Assumido até hoje | Razão |
+|---|---:|---:|---:|
+| Massa | 127,40 kg | 115,0 kg | — |
+| Centro de massa, x | **+1,0 mm** | +157,5 mm | — |
+| Ixx | 23,85 kg·m² | 32,20 kg·m² | 0,74× |
+| Iyy | 22,72 kg·m² | 32,20 kg·m² | 0,71× |
+| Izz, guinada | **7,93 kg·m²** | 2,30 kg·m² | **3,45×** |
+| Ixz | +1,08 kg·m² | 0 | — |
+
+⚠ A inércia de guinada modelada está **fora** da faixa da checagem de sensibilidade do
+experimento 6, que escalou os três eixos juntos até 1,6×. E o experimento 4 usou tensor
+diagonal, sem o produto de inércia.
+
+### Primeiro portão reprovado: o trim não fecha
+
+| Classe de empuxo | Janela viável de centro, x | Centro modelado | Falta |
+|---|---:|---:|---:|
+| Genérica 35 kgf | +115 a +210 mm | +1 mm | 114 mm |
+| K-260G4, 26 kgf | +145 a +210 mm | +1 mm | **144 mm** |
+
+Corrigir só movendo o tanque de 20 kg exigiria levá-lo **917 mm para frente**, para a
+frente do peito. Corrigir com lastro exigiria **105 kg** no bocal dianteiro.
+
+Isso não é ajuste fino: é **incompatibilidade entre a geometria A e um tanque nas
+costas**. ⚠ Reprova *este* arranjo de massa, com posições declaradas no guia, não
+otimizadas. Não prova que nenhum arranjo funciona.
+
+### Segundo portão reprovado: a turbina dorsal está dentro das costas
+
+`tools/freecad_envelope_gate.py`, resultado em `docs/resultados/portao-envelope.txt`.
+
+| Turbina | Folga real | Envelope de 180 mm invade |
+|---|---:|---|
+| seis de braço | 90 a 182 mm | não |
+| **dorsal** | **0 mm** | **tronco 2.090 cm³, cabeça 35 cm³** |
+
+O bocal dorsal está a 150 mm atrás da origem, o raio da turbina é 60 mm, e a face das
+costas fica a 120 mm. A tabela de coordenadas saiu de uma otimização de autoridade de
+controle que **nunca perguntou onde está o corpo**, e o guia de modelagem avisava que
+este portão podia reprovar.
+
+### Hipótese registrada, não testada
+
+Recuar o bocal dorsal resolveria a colisão **e** puxaria a janela de trim para trás, na
+direção do centro modelado. As duas reprovações podem ter a mesma correção.
+
+⚠ **A tabela de coordenadas não foi alterada.** O guia manda parar e avisar quando um
+portão reprova. Testar a hipótese é o próximo passo, e exige rodar o funil de novo com
+restrição de envelope.
+
 ## 12. O próximo passo
 
 Não é escolher turbina. É **pedir quatro números** a um fabricante, porque nenhum deles

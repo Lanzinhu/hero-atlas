@@ -31,6 +31,7 @@ import delay_sweep  # noqa: E402
 import dump_geometry_detail  # noqa: E402
 import funnel  # noqa: E402
 import structure_screen  # noqa: E402
+import suit_mass_budget  # noqa: E402
 import sweep_geometry  # noqa: E402
 import turbine_match  # noqa: E402
 
@@ -54,6 +55,7 @@ EXPERIMENTOS = (
     ("experimento-5-turbinas.txt", turbine_match.main),
     ("experimento-6-estrutura.txt", structure_screen.main),
     ("briefing-cad.txt", cad_brief.main),
+    ("orcamento-traje.txt", suit_mass_budget.main),
 )
 
 
