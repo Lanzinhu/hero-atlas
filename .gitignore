@@ -1,4 +1,6 @@
 .venv/
+# ambiente separado do gerador de corpo humano (Anny, PyTorch), fora do nucleo
+.venv-corpo/
 __pycache__/
 *.py[cod]
 *.egg-info/

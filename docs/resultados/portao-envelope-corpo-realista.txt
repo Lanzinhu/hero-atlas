@@ -1,21 +1,21 @@
 # GERADO por tools/freecad_envelope_gate.py, no Python do FreeCAD.
 # NAO entra na sessao 'resultados' do nox: regenere a mao.
-# gerado em 2026-09-13T22:26:08
+# gerado em 2026-09-13T22:25:54
 #
 PORTAO DE ENVELOPE: turbinas contra o corpo em pose de pairado
-corpo: manequim de primitivos docs/decks/manequim/manequim_pairado.FCStd
+corpo: malha docs/decks/corpo/corpo_pairado.stl, 27420 triangulos, 80.53 litros
 turbinas: docs/decks/referencia/referencia.FCStd
 envelope com folga: diametro 180 mm
 
 turbina               folga real  mais proximo                    envelope invade
 ------------------------------------------------------------------------------------------------
-turbina_par0_esq           90 mm  braco_esq                       nao
-turbina_par0_dir           90 mm  braco_dir                       nao
-turbina_par1_esq          173 mm  braco_esq                       nao
-turbina_par1_dir          173 mm  braco_dir                       nao
-turbina_par2_esq          182 mm  braco_esq                       nao
-turbina_par2_dir          182 mm  braco_dir                       nao
-turbina_dorsal              0 mm  tronco                          cabeca_pescoco 35 cm3, tronco 2090 cm3
+turbina_par0_esq          101 mm  corpo em (+357, -243, -48)      nao
+turbina_par0_dir          101 mm  corpo em (+357, +243, -48)      nao
+turbina_par1_esq          190 mm  corpo em (+62, -234, -179)      nao
+turbina_par1_dir          190 mm  corpo em (+62, +234, -179)      nao
+turbina_par2_esq          193 mm  corpo em (-9, -227, -203)       nao
+turbina_par2_dir          193 mm  corpo em (-9, +227, -203)       nao
+turbina_dorsal              0 mm  corpo em (-129, -48, -96)       corpo 1889 cm3
 
 turbina contra turbina, envelopes com folga:
   turbina_par0_esq x turbina_par1_esq: 6 cm3
@@ -25,4 +25,4 @@ REPROVADO: 1 de 7 turbinas com contato ou invasao
   turbina_dorsal
 
 ATENCAO: nao verifica o cone do jato, so o volume da turbina e sua folga.
-ATENCAO: corpo em solidos primitivos; folga zero nao depende desse detalhe.
+ATENCAO: corpo em malha de forma, parametrica; nao e a pele de uma pessoa medida.

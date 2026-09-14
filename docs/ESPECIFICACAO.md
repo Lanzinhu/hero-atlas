@@ -530,6 +530,43 @@ costas fica a 120 mm. A tabela de coordenadas saiu de uma otimização de autori
 controle que **nunca perguntou onde está o corpo**, e o guia de modelagem avisava que
 este portão podia reprovar.
 
+### O mesmo portão com corpo realista: a reprovação não era efeito do tronco em caixa
+
+O manequim de primitivos tem costas planas. Para saber se a reprovação dependia disso,
+o portão rodou de novo contra uma malha humana realista, gerada pelo modelo paramétrico
+**Anny** (NAVER Labs, 2025, construído sobre o MakeHuman; código Apache 2.0, malha CC0).
+Registro em `docs/sources/anny-naver-2025-corpo-parametrico.md`.
+
+`tools/corpo_anny.py`, em ambiente separado `.venv-corpo` porque exige PyTorch; saída em
+`docs/decks/corpo/`. Portão em `docs/resultados/portao-envelope-corpo-realista.txt`.
+
+| Grandeza | Primitivos | Malha Anny |
+|---|---:|---:|
+| Estatura | 1750 mm | 1750 mm, calibrada |
+| Massa | 80 kg | **78,7 kg**, o Anny satura antes de 80 |
+| Folga real, turbinas de braço | 90 a 182 mm | 101 a 193 mm |
+| **Folga real, dorsal** | **0 mm** | **0 mm** |
+| **Envelope da dorsal dentro do corpo** | **2.125 cm³**, tronco 2.090 + cabeça 35 | **1.889 cm³** |
+| Ombro, meia largura e altura do chão | 200 mm, 1432 mm | 182 mm, 1406 mm |
+
+A pose dos braços é a mesma cinemática do manequim, aplicada ao esqueleto do Anny, com
+erro angular medido abaixo de 0,01° por segmento. A malha sai fechada nas duas poses.
+
+**Conferência de inércia, pose anatômica, densidade uniforme de 980 kg/m³:**
+
+| | Primitivos | Malha Anny | Matsuo extrapolado |
+|---|---:|---:|---:|
+| Ixx | 13,23 | 13,61 | 14,02 |
+| Iyy | 12,31 | 12,50 | 13,00 |
+
+Dois modelos de forma independentes caem a menos de 3 % um do outro. ⚠ Isso **não**
+valida a inércia: os dois assumem densidade uniforme, e o erro de tabela por indivíduo
+chega a 60 %. Mostra só que a forma dos primitivos não é a fonte de erro dominante.
+
+⚠ A malha serve para **forma**. As propriedades de massa do projeto continuam vindo do
+manequim de segmentos. Os fenótipos do Anny são, nas palavras dos autores, baseados em
+preconceitos de artistas sobre traços humanos; não são percentis de população medida.
+
 ### Hipótese registrada, não testada
 
 Recuar o bocal dorsal resolveria a colisão **e** puxaria a janela de trim para trás, na

@@ -10,6 +10,7 @@ do registro, não alteração da página de origem.
 
 | Registro | SHA-256 |
 |---|---|
+| `anny-naver-2025-corpo-parametrico.md` | `b20db8b35a3f0559a7d46c48e785b8a6a7cd83a02192cb8ae0cce06ac97a4421` |
 | `de-leva-1996-segmentos-NAO-VERIFICADO.md` | `4f2aea7e6a436632b1c40fe6ce9207e7ea707dbfab5f8ed7d213481a3d8da094` |
 | `jetcat-p400-pro-ln-2026-09-12.md` | `d7cf1cb7a5a109697a4e0d16c587484198f154eb66d087d9603903491a6b234e` |
 | `kingtech-k210-k260-2026-09-12.md` | `a9e2c8e1e096fae07dba085f3a769fa8b7687500cb5f40313f80653e58f7a373` |

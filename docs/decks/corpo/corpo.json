@@ -1,0 +1,147 @@
+{
+  "gerado_por": "tools/corpo_anny.py",
+  "modelo": "Anny, NAVER Labs, rig 'anny', topologia 'anny'. arXiv 2511.03589",
+  "licenca": "codigo Apache 2.0; malha MakeHuman/MPFB2 CC0 1.0",
+  "anny_versao": "0.6.1.dev1+g81ca83e20",
+  "referencial": "projeto: x frente, y direita, z para baixo, mm",
+  "alinhamento": "sola no chao z = +1250 mm; ombros (upperarm01) centrados em x = 0, y = 0",
+  "fenotipo": {
+    "gender": 0.0,
+    "age": 0.5,
+    "muscle": 1.0,
+    "weight": 1.0,
+    "height": 0.562863,
+    "proportions": 0.5
+  },
+  "medidas_anny": {
+    "height": 1.75,
+    "waist_circumference": 0.839511,
+    "volume": 0.080272,
+    "mass": 78.666946,
+    "bmi": 25.687162
+  },
+  "densidade_uniforme_kg_m3": 980.0,
+  "poses": {
+    "anatomica": {
+      "angulos_graus": {
+        "ombro_flexao": 0.0,
+        "ombro_abducao": 4.0,
+        "cotovelo_flexao": 0.0
+      },
+      "erro_angular_segmentos_graus": {
+        "braco_L": 0.0,
+        "antebraco_L": 0.0,
+        "braco_R": 0.0,
+        "antebraco_R": 0.0
+      },
+      "stl": "docs/decks/corpo/corpo_anatomica.stl",
+      "vertices": 13718,
+      "triangulos": 27420,
+      "malha_fechada": true,
+      "limites_mm": {
+        "min": [
+          -131.4,
+          -262.9,
+          -512.7
+        ],
+        "max": [
+          201.7,
+          262.9,
+          1250.0
+        ]
+      },
+      "densidade_uniforme": {
+        "massa_kg": 79.141,
+        "centro_mm": [
+          7.4,
+          0.0,
+          243.8
+        ],
+        "inercia_no_centro_kg_m2": [
+          [
+            13.6068,
+            -0.0,
+            -0.1955
+          ],
+          [
+            -0.0,
+            12.5045,
+            0.0001
+          ],
+          [
+            -0.1955,
+            0.0001,
+            1.5628
+          ]
+        ]
+      }
+    },
+    "pairado": {
+      "angulos_graus": {
+        "ombro_flexao": 55.0,
+        "ombro_abducao": 20.0,
+        "cotovelo_flexao": 35.0
+      },
+      "erro_angular_segmentos_graus": {
+        "braco_L": 0.0,
+        "antebraco_L": 0.0,
+        "braco_R": 0.0,
+        "antebraco_R": 0.0
+      },
+      "stl": "docs/decks/corpo/corpo_pairado.stl",
+      "vertices": 13718,
+      "triangulos": 27420,
+      "malha_fechada": true,
+      "limites_mm": {
+        "min": [
+          -131.5,
+          -275.9,
+          -512.7
+        ],
+        "max": [
+          667.6,
+          275.9,
+          1250.0
+        ]
+      },
+      "densidade_uniforme": {
+        "massa_kg": 78.922,
+        "centro_mm": [
+          29.2,
+          0.0,
+          231.0
+        ],
+        "inercia_no_centro_kg_m2": [
+          [
+            13.905,
+            -0.0,
+            0.2368
+          ],
+          [
+            -0.0,
+            13.209,
+            0.0001
+          ],
+          [
+            0.2368,
+            0.0001,
+            2.1314
+          ]
+        ]
+      }
+    }
+  },
+  "ombros_mm": {
+    "esquerdo": [
+      0.0,
+      -182.1,
+      -156.4
+    ],
+    "direito": [
+      0.0,
+      182.1,
+      -156.4
+    ],
+    "manequim_de_primitivos": "(0, -/+200, -181.5)"
+  }
+}
